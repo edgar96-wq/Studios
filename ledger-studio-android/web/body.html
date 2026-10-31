@@ -1,0 +1,20 @@
+<div id="mapbg"></div>
+<div id="app">
+  <header>
+    <div class="brand">
+      <svg width="38" height="38" viewBox="0 0 38 38" aria-hidden="true"><circle cx="19" cy="19" r="17.5" fill="#3b1d52" stroke="#b48a2e" stroke-width="1.5"/><circle cx="19" cy="19" r="13.5" fill="none" stroke="#ecd38a" stroke-opacity=".5" stroke-width=".8"/><path d="M19 6l3.2 10.2L19 19l-3.2-2.8z" fill="#ecd38a"/><path d="M19 32l-3.2-10.2L19 19l3.2 2.8z" fill="#b9a3d6"/><path d="M10 26c4-2 7-1 9-4s5-4 9-3" fill="none" stroke="#ecd38a" stroke-width="1.4" stroke-dasharray="2.4 2"/></svg>
+      <div><h1 id="bizName">Ledger Studio</h1><small id="sub">Mileage · Books · Taxes</small></div>
+    </div>
+    <div class="hdr-r"><select id="yearPick" class="yearpick" aria-label="Tax year"></select><div class="store" id="store"><i></i><span>Opening books…</span></div></div>
+  </header>
+  <nav class="tabs" role="tablist" id="tabs"></nav>
+  <svg id="tabJoin" aria-hidden="true"></svg>
+  <main id="ws"><div class="empty">Opening your books…</div></main>
+</div>
+<div class="dock" id="dock">
+  <div class="grp sec" id="railSec"></div>
+  <div class="div"></div>
+  <div class="grp pri" id="railPri"></div>
+</div>
+<div id="sheet" hidden><div class="panel" role="dialog" aria-modal="true" aria-labelledby="sheetTitle"><div class="panel-head"><h2 id="sheetTitle"></h2><button class="x" id="sheetX" aria-label="Close">×</button></div><div id="sheetBody"></div></div></div>
+<input type="file" id="filePick" hidden>

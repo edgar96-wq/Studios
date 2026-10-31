@@ -1,0 +1,42 @@
+name: Ledger Studio Android app
+on:
+  push:
+    branches: [main]
+    paths: ['ledger-studio-android/**', '.github/workflows/ledger-studio-android.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ledger-studio-android
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check the trip, rule and tax logic
+        run: node web/core.test.js
+      - name: Build the page
+        run: python3 tools/build-web.py
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+      - name: Build
+        run: gradle :app:assembleRelease --no-daemon --stacktrace
+      - name: Name the file
+        run: cp app/build/outputs/apk/release/app-release.apk ../LedgerStudio.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LedgerStudio-apk
+          path: LedgerStudio.apk
+      - name: Publish it as a release (download it from the phone)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ledger-studio-build-${{ github.run_number }}
+          name: Ledger Studio build ${{ github.run_number }}
+          files: LedgerStudio.apk
+          make_latest: false
