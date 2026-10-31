@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Crew" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/marble</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+        <item name="android:colorAccent">@color/plum</item>
+        <item name="android:windowSplashScreenBackground">@color/marble</item>
+        <item name="android:windowSplashScreenIconBackgroundColor">@color/plum</item>
+    </style>
+</resources>
