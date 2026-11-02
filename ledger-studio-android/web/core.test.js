@@ -64,5 +64,18 @@ ok(r.txns[2].line === 'transfer', 'card payment is marked not income');
 ok(C.memoFind({ 'expense|home depot': '22' }, 'expense', 'HOME DEPOT 4410 PORT CHARLOTTE') === '22', 'merchant memory ignores store number and city');
 ok(C.csvToTxns('"10/07/2026","-52.10","*","","SHELL OIL 57444"\n', 'wf.csv').txns[0].amount === 52.1, 'Wells Fargo file without a header row');
 
+/* 8. GAIA jobs: company from the WO prefix, State Plane → lat/lon, only the picked fields kept */
+ok(C.companyFor('B-177608') === 'M.E. Land Surveying, Inc.' && C.companyFor('O-155343') === 'OnlineLand Surveyors, Inc.' && C.companyFor('2610.0193') === 'LandMark' && C.companyFor('123456') === 'Target' && C.companyFor('X-1') === '', 'company from the job number prefix (§3)');
+const spc = C.llToSpc(27.0442, -82.2359);
+let js = C.jobSite(null, { code: 'B-177608', address: '4245 Avanti Circle, North Port, FL 34287', company: 'M.E. Land Surveying, Inc.', status: 'ordered', spcN: spc.N, spcE: spc.E, buyer: 'Jane Doe' }, { billTo: 'employer', source: 'onedrive' });
+ok(js.billTo === 'employer' && js.client === 'M.E. Land Surveying, Inc.' && js.coordFrom === 'spc' && near(js.lat, 27.0442, 1e-6) && near(js.lon, -82.2359, 1e-6), 'job site from job.json fields: SPC N/E → lat/lon, employer, company');
+ok(!('buyer' in js) && !JSON.stringify(js).includes('Jane'), 'nothing but the picked fields is kept');
+let js2 = C.jobSite(null, { code: 'O-155343', address: '1 Main St, Punta Gorda, FL' }, { billTo: 'employer', source: 'onedrive' });
+ok(js2.lat == null && js2.client === 'OnlineLand Surveyors, Inc.', 'no coordinates → left for address lookup; company from prefix');
+const geo = { ...js2, lat: 26.93, lon: -82.04, coordFrom: 'geocode' };
+ok(C.jobSite(geo, { code: 'O-155343', address: '1 Main St, Punta Gorda, FL' }).lat === 26.93, 'same address keeps the looked-up location');
+ok(C.jobSite(geo, { code: 'O-155343', address: '9 Other Rd, Punta Gorda, FL' }).lat == null, 'changed address is looked up again');
+ok(C.jobSite({ ...geo, coordFrom: undefined }, { code: 'O-155343', address: '9 Other Rd' }).lat === 26.93, 'a location you set by hand is never replaced by a lookup');
+
 console.log(fails ? `\n${fails} check(s) failed` : '\nall checks passed');
 process.exit(fails ? 1 : 0);

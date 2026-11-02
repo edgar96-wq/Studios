@@ -60,6 +60,7 @@ public class MainActivity extends Activity {
 
     WebView web;
     Saver saver;
+    OneDrive onedrive;
     ValueCallback<Uri[]> fileCb;
     Uri cameraUri;
     final Handler ui = new Handler(Looper.getMainLooper());
@@ -113,6 +114,7 @@ public class MainActivity extends Activity {
             }
         });
         saver = new Saver(this);
+        onedrive = new OneDrive(this);
         web.addJavascriptInterface(new Bridge(), "LedgerNative");
         Tracker.ui = this;
         if (state != null) web.restoreState(state); else web.loadUrl(HOME);
@@ -357,6 +359,13 @@ public class MainActivity extends Activity {
                 return ORIGIN + "/receipts/" + safe;
             } catch (Exception e) { return ""; }
         }
+
+        /* OneDrive jobs, read-only (see OneDrive.java) */
+        @JavascriptInterface public String odStatus() { return onedrive.status(); }
+        @JavascriptInterface public void odConnect(String clientId) { onedrive.connect(clientId); }
+        @JavascriptInterface public void odOpen(String uri, String code) { onedrive.openLogin(uri, code); }
+        @JavascriptInterface public void odDisconnect() { onedrive.disconnect(); }
+        @JavascriptInterface public void odJobs(String req) { onedrive.listJobs(req); }
 
         /* saving exports (Android's save screen, so OneDrive or Downloads) */
         @JavascriptInterface public String saveBegin(String name, String mime, String where) { return saver.begin(name, mime, where); }

@@ -258,4 +258,26 @@ function csvToTxns(text, fileName, memo = {}) {
   return { txns: out };
 }
 
-if (typeof module !== 'undefined') module.exports = { hav, llToSpc, spcToLl, detectTrips, classifyTrip, simulateDay, books, taxOn, quarterly, csvToTxns, uid, ymd, rateOn, placesOf, matchRule, migrateSettings, payeeKey, memoKey, memoFind };
+/* --- GAIA jobs (Integration Spec §3, §5): the WO number is the job code; its prefix says which company pays --- */
+const COMPANY_PREFIX = [[/^B-/i, 'M.E. Land Surveying, Inc.'], [/^O-/i, 'OnlineLand Surveyors, Inc.'], [/^\d{4}\.\d{4}$/, 'LandMark'], [/^\d{6}$/, 'Target']];
+function companyFor(code) { for (const [re, n] of COMPANY_PREFIX) if (re.test(String(code || '').trim())) return n; return ''; }
+/* One job site from a job record (the fields picked from a job.json, or a ledger-jobs.json row). Only code, address,
+   client, coordinates and status are kept — nothing else from the record. ex = the job already in Ledger, if any. */
+function jobSite(ex, r, o = {}) {
+  const code = String(r.code || r.job_id || r.job || r.jobNumber || '').trim(); if (!code) return null;
+  let lat = r.lat ?? r.latitude ?? null, lon = r.lon ?? r.lng ?? r.longitude ?? null, from = lat != null && lon != null ? 'latlon' : null;
+  const N = r.spcN ?? r.northing ?? r.N, E = r.spcE ?? r.easting ?? r.E;
+  if (!from && N != null && E != null && isFinite(+N) && isFinite(+E) && +N > 1e5 && +E > 1e5) { const p = spcToLl(+N, +E); lat = +p.lat.toFixed(6); lon = +p.lon.toFixed(6); from = 'spc'; }
+  const j = ex ? { ...ex } : { id: 'job_' + code.replace(/[^A-Za-z0-9.-]/g, '_'), schema: 1, billTo: 'own', status: 'active', lat: null, lon: null };
+  const address = String(r.address || '').trim() || j.address || '';
+  if (from) { j.lat = +lat; j.lon = +lon; j.coordFrom = from; }
+  else if (ex && address !== (ex.address || '') && ex.coordFrom === 'geocode') { j.lat = null; j.lon = null; j.coordFrom = null; } /* moved: look it up again */
+  j.code = code; j.address = address;
+  j.client = String(r.client || r.company || '').trim() || j.client || companyFor(code);
+  if (o.billTo) j.billTo = o.billTo; else if (r.billTo === 'employer' || r.billTo === 'own') j.billTo = r.billTo;
+  if (r.status) j.jobStatus = String(r.status);
+  if (o.source) { j.source = o.source; j.externalId = o.source + '|' + code; }
+  return j;
+}
+
+if (typeof module !== 'undefined') module.exports = { hav, llToSpc, spcToLl, detectTrips, classifyTrip, simulateDay, books, taxOn, quarterly, csvToTxns, uid, ymd, rateOn, placesOf, matchRule, migrateSettings, payeeKey, memoKey, memoFind, companyFor, jobSite };

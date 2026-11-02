@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- OneDrive sign-in tokens never go into Android backups or phone-to-phone transfers -->
+<data-extraction-rules>
+    <cloud-backup><exclude domain="sharedpref" path="od.xml" /></cloud-backup>
+    <device-transfer><exclude domain="sharedpref" path="od.xml" /></device-transfer>
+</data-extraction-rules>
