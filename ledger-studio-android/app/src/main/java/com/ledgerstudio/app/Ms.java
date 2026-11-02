@@ -25,13 +25,13 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * OneDrive sign-in (read-only) with Microsoft's MSAL library, the same app registration as Crew Studio, single-account mode (res/raw/auth_config.json).
+ * OneDrive sign-in (read-only) with Microsoft's MSAL library, Ledger Studio's own app registration, single-account mode (res/raw/auth_config.json).
  * Sign in once; after that tokens are renewed silently. MSAL keeps them in this app's private, encrypted storage:
  * never in the web page, exports or backups (shared preferences are excluded from backups). Only the account name is shown to the page.
  */
 final class Ms {
     /** MSAL adds openid, profile and offline_access by itself. */
-    static final List<String> SCOPES = Arrays.asList("Files.Read"); // read-only: Ledger never changes anything in OneDrive
+    static final List<String> SCOPES = Arrays.asList("Files.Read", "User.Read"); // read-only: Ledger never changes anything in OneDrive (MSAL adds offline_access itself)
 
     /** Why a call can't go on, in words the page turns into a message. */
     static final class Fail extends IOException {

@@ -13,7 +13,7 @@ The app is the Ledger Studio page running offline inside the app, plus a small A
 | `TrackService.java` | Records one drive (GPS every ~5 s, "Recording a drive" notification); stops on its own after you park |
 | `Tracker.java` | The on/off setting, the GPS points file, the tracking log |
 | `BootReceiver.java` | Starts listening again after a phone restart or an app update |
-| `Ms.java` | Microsoft sign-in (MSAL, single account; same app registration as Crew Studio; permission Files.Read only) |
+| `Ms.java` | Microsoft sign-in (MSAL, single account; Ledger Studio's own app registration; Files.Read + User.Read, read-only) |
 | `Graph.java` | Reads `GAIA/Jobs` (read-only, fenced): `job.json` → job number, company, status, address only; `field/<job_id>.txt` → centre of the points |
 | `Saver.java` | Saves exports through Android's save screen (OneDrive, Downloads…) |
 
@@ -41,8 +41,8 @@ On the phone: open the repository's Releases page → newest "Ledger Studio buil
 
 ## Work from OneDrive (Integration Spec §5–6)
 Places → **Connect OneDrive**: Microsoft's sign-in page opens once (MSAL, `app/src/main/res/raw/auth_config.json`).
-Same Entra app registration as Crew Studio (client ID `e5c6b607-1663-4f0a-b51c-74996aecab0c`), with this app's own
-Android redirect: package `com.ledgerstudio.app`, signature hash `yDTjVnj6whCYU29pPk8Ob2JPWrU=`
+Ledger Studio's own Entra app registration (client ID `edd3b4cd-0912-4c99-b411-93b9c2734d9c`, personal and work accounts,
+authority `common`, no secret), Android platform: package `com.ledgerstudio.app`, signature hash `yDTjVnj6whCYU29pPk8Ob2JPWrU=`
 (redirect URI `msauth://com.ledgerstudio.app/yDTjVnj6whCYU29pPk8Ob2JPWrU%3D`). A new signing key needs a new redirect in Entra.
 
 **Check for new work** runs when the app opens, when you pull down, and from Places:
