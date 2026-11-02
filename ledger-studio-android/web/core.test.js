@@ -64,18 +64,26 @@ ok(r.txns[2].line === 'transfer', 'card payment is marked not income');
 ok(C.memoFind({ 'expense|home depot': '22' }, 'expense', 'HOME DEPOT 4410 PORT CHARLOTTE') === '22', 'merchant memory ignores store number and city');
 ok(C.csvToTxns('"10/07/2026","-52.10","*","","SHELL OIL 57444"\n', 'wf.csv').txns[0].amount === 52.1, 'Wells Fargo file without a header row');
 
-/* 8. GAIA jobs: company from the WO prefix, State Plane → lat/lon, only the picked fields kept */
+/* 8. GAIA jobs: company from the WO prefix; survey jobs are own contract work; position from the field points */
 ok(C.companyFor('B-177608') === 'M.E. Land Surveying, Inc.' && C.companyFor('O-155343') === 'OnlineLand Surveyors, Inc.' && C.companyFor('2610.0193') === 'LandMark' && C.companyFor('123456') === 'Target' && C.companyFor('X-1') === '', 'company from the job number prefix (§3)');
-const spc = C.llToSpc(27.0442, -82.2359);
-let js = C.jobSite(null, { code: 'B-177608', address: '4245 Avanti Circle, North Port, FL 34287', company: 'M.E. Land Surveying, Inc.', status: 'ordered', spcN: spc.N, spcE: spc.E, buyer: 'Jane Doe' }, { billTo: 'employer', source: 'onedrive' });
-ok(js.billTo === 'employer' && js.client === 'M.E. Land Surveying, Inc.' && js.coordFrom === 'spc' && near(js.lat, 27.0442, 1e-6) && near(js.lon, -82.2359, 1e-6), 'job site from job.json fields: SPC N/E → lat/lon, employer, company');
+const ctr = C.llToSpc(27.0442, -82.2359);
+let js = C.jobSite(null, { code: 'B-177608', address: '4245 Avanti Circle, North Port, FL 34287', company: 'M.E. Land Surveying, Inc.', status: 'ordered', buyer: 'Jane Doe' }, { source: 'onedrive' });
+ok(js.billTo === 'own' && js.client === 'M.E. Land Surveying, Inc.' && js.lat == null, 'job.json job: own contract work, client = company, no position yet (address lookup next)');
 ok(!('buyer' in js) && !JSON.stringify(js).includes('Jane'), 'nothing but the picked fields is kept');
-let js2 = C.jobSite(null, { code: 'O-155343', address: '1 Main St, Punta Gorda, FL' }, { billTo: 'employer', source: 'onedrive' });
-ok(js2.lat == null && js2.client === 'OnlineLand Surveyors, Inc.', 'no coordinates → left for address lookup; company from prefix');
-const geo = { ...js2, lat: 26.93, lon: -82.04, coordFrom: 'geocode' };
-ok(C.jobSite(geo, { code: 'O-155343', address: '1 Main St, Punta Gorda, FL' }).lat === 26.93, 'same address keeps the looked-up location');
-ok(C.jobSite(geo, { code: 'O-155343', address: '9 Other Rd, Punta Gorda, FL' }).lat == null, 'changed address is looked up again');
-ok(C.jobSite({ ...geo, coordFrom: undefined }, { code: 'O-155343', address: '9 Other Rd' }).lat === 26.93, 'a location you set by hand is never replaced by a lookup');
+const geo = { ...js, lat: 27.05, lon: -82.24, coordFrom: 'geocode' };
+const withPts = C.jobSite(geo, { code: 'B-177608', pointsN: ctr.N, pointsE: ctr.E }, { source: 'onedrive' });
+ok(withPts.coordFrom === 'points' && near(withPts.lat, 27.0442, 1e-6) && near(withPts.lon, -82.2359, 1e-6) && withPts.address === js.address, 'points file appears → position moves to the centre of the points');
+ok(C.jobSite(withPts, { code: 'B-177608', address: '9 Other Rd' }, { source: 'onedrive' }).coordFrom === 'points', 'later job.json changes keep the points position');
+ok(C.jobSite({ ...geo, coordFrom: 'manual' }, { code: 'B-177608', pointsN: ctr.N, pointsE: ctr.E }, { source: 'onedrive' }).lat === 27.05, 'a location set by hand is kept');
+ok(C.jobSite(geo, { code: 'B-177608', address: '9 Other Rd' }, { source: 'onedrive' }).lat == null, 'changed address is looked up again');
+ok(C.jobSite(null, { code: 'O-155343', address: '1 Main St', billTo: 'employer' }, { source: 'ledger-jobs' }).billTo === 'own', 'ledger-jobs.json "employer" rows are own contract work too');
+ok(C.jobSite(null, { code: 'O-155343', address: '1 Main St' }, { source: 'onedrive', reimburse: { 'OnlineLand Surveyors, Inc.': true } }).billTo === 'employer', 'a company marked as paying the mileage makes its jobs Employer jobs');
+const SJ = { settings: S.settings, jobs: [{ id: 'job_B-1', code: 'B-1', lat: JOB.lat, lon: JOB.lon, source: 'onedrive', billTo: 'own' }], trips: [
+  { id: 't1', cls: 'employer', locked: true, source: 'phone', jobIds: ['job_B-1'], start: { lat: HOME.lat, lon: HOME.lon }, end: { lat: JOB.lat, lon: JOB.lon }, miles: 5 },
+  { id: 't2', cls: 'employer', source: 'manual', jobIds: ['job_B-1'], start: { label: 'Home' }, end: { label: 'B-1' }, miles: 7 },
+  { id: 't3', cls: 'personal', source: 'phone', jobIds: [], start: {}, end: {}, miles: 2 }] };
+const fixed = C.refileOwnJobTrips(SJ);
+ok(fixed.length === 2 && SJ.trips[0].cls === 'business' && SJ.trips[1].cls === 'business' && SJ.trips[1].purpose === 'Boundary survey – B-1' && SJ.trips[2].cls === 'personal', 'trips filed as Employer job for own survey jobs are re-filed as business');
 
 console.log(fails ? `\n${fails} check(s) failed` : '\nall checks passed');
 process.exit(fails ? 1 : 0);

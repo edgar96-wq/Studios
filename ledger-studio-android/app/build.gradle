@@ -23,8 +23,9 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled true
-            shrinkResources true
+            // off, as in Microsoft's own MSAL samples (and Crew Studio): shrinking can break MSAL's token cache.
+            minifyEnabled false
+            shrinkResources false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             signingConfig signingConfigs.ledger
         }
@@ -36,10 +37,14 @@ android {
         targetCompatibility JavaVersion.VERSION_17
     }
     androidResources { noCompress 'html' }
+    packaging {
+        resources { excludes += ['META-INF/DEPENDENCIES', 'META-INF/LICENSE*', 'META-INF/NOTICE*', 'META-INF/versions/9/OSGI-INF/MANIFEST.MF'] }
+    }
 }
 
 dependencies {
     implementation 'androidx.webkit:webkit:1.12.1'
     implementation 'androidx.core:core:1.13.1'
     implementation 'com.google.android.gms:play-services-location:21.3.0'
+    implementation 'com.microsoft.identity.client:msal:8.6.0'
 }

@@ -60,7 +60,6 @@ public class MainActivity extends Activity {
 
     WebView web;
     Saver saver;
-    OneDrive onedrive;
     ValueCallback<Uri[]> fileCb;
     Uri cameraUri;
     final Handler ui = new Handler(Looper.getMainLooper());
@@ -114,7 +113,6 @@ public class MainActivity extends Activity {
             }
         });
         saver = new Saver(this);
-        onedrive = new OneDrive(this);
         web.addJavascriptInterface(new Bridge(), "LedgerNative");
         Tracker.ui = this;
         if (state != null) web.restoreState(state); else web.loadUrl(HOME);
@@ -360,12 +358,27 @@ public class MainActivity extends Activity {
             } catch (Exception e) { return ""; }
         }
 
-        /* OneDrive jobs, read-only (see OneDrive.java) */
-        @JavascriptInterface public String odStatus() { return onedrive.status(); }
-        @JavascriptInterface public void odConnect(String clientId) { onedrive.connect(clientId); }
-        @JavascriptInterface public void odOpen(String uri, String code) { onedrive.openLogin(uri, code); }
-        @JavascriptInterface public void odDisconnect() { onedrive.disconnect(); }
-        @JavascriptInterface public void odJobs(String req) { onedrive.listJobs(req); }
+        /* OneDrive, read-only: Microsoft sign-in (MSAL, Ms.java) and GAIA/Jobs (Graph.java) */
+        @JavascriptInterface public String msStatus() {
+            try { return new JSONObject().put("signedIn", Ms.signedIn(MainActivity.this)).put("account", Ms.account(MainActivity.this)).toString(); }
+            catch (Exception e) { return "{}"; }
+        }
+        @JavascriptInterface public void msSignIn() { Ms.signIn(MainActivity.this); }
+        @JavascriptInterface public void msSignOut() { Ms.signOut(MainActivity.this); }
+
+        /** req = {"known": {...}, "all": bool}; answers with event "odjobs" {items:[…]} or {error, code}. */
+        @JavascriptInterface public void odJobs(String req) {
+            Ms.BG.execute(() -> {
+                try {
+                    JSONObject q = new JSONObject(req);
+                    emit("odjobs", new JSONObject().put("items", Graph.scan(MainActivity.this, q.optJSONObject("known"), q.optBoolean("all"))).toString());
+                } catch (Exception e) {
+                    Ms.Fail f = Ms.map(e);
+                    try { emit("odjobs", new JSONObject().put("error", String.valueOf(f.getMessage())).put("code", f.code).toString()); }
+                    catch (Exception x) { emit("odjobs", "{\"error\":\"OneDrive check failed\"}"); }
+                }
+            });
+        }
 
         /* saving exports (Android's save screen, so OneDrive or Downloads) */
         @JavascriptInterface public String saveBegin(String name, String mime, String where) { return saver.begin(name, mime, where); }

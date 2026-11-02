@@ -261,23 +261,53 @@ function csvToTxns(text, fileName, memo = {}) {
 /* --- GAIA jobs (Integration Spec §3, §5): the WO number is the job code; its prefix says which company pays --- */
 const COMPANY_PREFIX = [[/^B-/i, 'M.E. Land Surveying, Inc.'], [/^O-/i, 'OnlineLand Surveyors, Inc.'], [/^\d{4}\.\d{4}$/, 'LandMark'], [/^\d{6}$/, 'Target']];
 function companyFor(code) { for (const [re, n] of COMPANY_PREFIX) if (re.test(String(code || '').trim())) return n; return ''; }
-/* One job site from a job record (the fields picked from a job.json, or a ledger-jobs.json row). Only code, address,
-   client, coordinates and status are kept — nothing else from the record. ex = the job already in Ledger, if any. */
+/* One job site from a job record: the fields picked from a job.json (code, company, status, address, and the centre of
+   field/<job_id>.txt as pointsN/pointsE), or a ledger-jobs.json row. Nothing else from the record is kept.
+   ex = the job already in Ledger, if any. o.source = 'onedrive' | 'ledger-jobs'; o.reimburse = {company: true}.
+   Position, best first: set by hand > centre of the field points > coordinates in the record > address lookup (done by the app).
+   Survey jobs are Edgar's own contract work (1099): billTo 'own', unless that company is marked as paying his mileage. */
+const SURVEY_SOURCES = ['onedrive', 'ledger-jobs'];
+const plausibleSpc = (N, E) => N != null && E != null && isFinite(+N) && isFinite(+E) && +N > 1e5 && +N < 2e6 && +E > 1e5 && +E < 1.5e6;
 function jobSite(ex, r, o = {}) {
   const code = String(r.code || r.job_id || r.job || r.jobNumber || '').trim(); if (!code) return null;
-  let lat = r.lat ?? r.latitude ?? null, lon = r.lon ?? r.lng ?? r.longitude ?? null, from = lat != null && lon != null ? 'latlon' : null;
-  const N = r.spcN ?? r.northing ?? r.N, E = r.spcE ?? r.easting ?? r.E;
-  if (!from && N != null && E != null && isFinite(+N) && isFinite(+E) && +N > 1e5 && +E > 1e5) { const p = spcToLl(+N, +E); lat = +p.lat.toFixed(6); lon = +p.lon.toFixed(6); from = 'spc'; }
   const j = ex ? { ...ex } : { id: 'job_' + code.replace(/[^A-Za-z0-9.-]/g, '_'), schema: 1, billTo: 'own', status: 'active', lat: null, lon: null };
   const address = String(r.address || '').trim() || j.address || '';
-  if (from) { j.lat = +lat; j.lon = +lon; j.coordFrom = from; }
-  else if (ex && address !== (ex.address || '') && ex.coordFrom === 'geocode') { j.lat = null; j.lon = null; j.coordFrom = null; } /* moved: look it up again */
+  const manual = ex && ex.lat != null && (ex.coordFrom === 'manual' || !ex.coordFrom);
+  if (!manual) {
+    const set = (lat, lon, from) => { j.lat = +(+lat).toFixed(6); j.lon = +(+lon).toFixed(6); j.coordFrom = from; };
+    let lat = r.lat ?? r.latitude ?? null, lon = r.lon ?? r.lng ?? r.longitude ?? null;
+    const N = r.spcN ?? r.northing ?? r.N, E = r.spcE ?? r.easting ?? r.E;
+    if (plausibleSpc(r.pointsN, r.pointsE)) { const p = spcToLl(+r.pointsN, +r.pointsE); set(p.lat, p.lon, 'points'); }
+    else if (j.coordFrom === 'points' && j.lat != null) { /* keep the field points' centre */ }
+    else if (lat != null && lon != null) set(lat, lon, 'latlon');
+    else if (plausibleSpc(N, E)) { const p = spcToLl(+N, +E); set(p.lat, p.lon, 'spc'); }
+    else if (ex && address !== (ex.address || '') && ex.coordFrom === 'geocode') { j.lat = null; j.lon = null; j.coordFrom = null; } /* moved: look it up again */
+  }
   j.code = code; j.address = address;
-  j.client = String(r.client || r.company || '').trim() || j.client || companyFor(code);
-  if (o.billTo) j.billTo = o.billTo; else if (r.billTo === 'employer' || r.billTo === 'own') j.billTo = r.billTo;
+  j.client = String(r.company || r.client || '').trim() || j.client || companyFor(code);
+  if (SURVEY_SOURCES.includes(o.source)) j.billTo = (o.reimburse || {})[j.client] ? 'employer' : 'own';
+  else if (o.billTo) j.billTo = o.billTo;
+  else if (r.billTo === 'employer' || r.billTo === 'own') j.billTo = r.billTo;
   if (r.status) j.jobStatus = String(r.status);
   if (o.source) { j.source = o.source; j.externalId = o.source + '|' + code; }
   return j;
 }
+/* Trips already filed as "Employer job" for survey jobs whose company does NOT pay the mileage → business again.
+   Returns the trips it changed (the caller saves them). classify = classifyTrip for GPS trips. */
+function refileOwnJobTrips(S) {
+  const own = new Map(S.jobs.filter(j => SURVEY_SOURCES.includes(j.source) && j.billTo === 'own').map(j => [j.id, j]));
+  const out = [];
+  for (const t of S.trips) {
+    if (t.cls !== 'employer' || !(t.jobIds || []).some(id => own.has(id))) continue;
+    if (t.start && t.start.lat != null && t.source !== 'manual') { t.locked = false; classifyTrip(t, S); }
+    else {
+      t.cls = 'business';
+      t.purpose = 'Boundary survey – ' + (t.jobIds || []).map(id => (own.get(id) || {}).code).filter(Boolean).join(' → ');
+      t.reason = 'Survey job: your own contract work, so the miles are deductible.';
+    }
+    out.push(t);
+  }
+  return out;
+}
 
-if (typeof module !== 'undefined') module.exports = { hav, llToSpc, spcToLl, detectTrips, classifyTrip, simulateDay, books, taxOn, quarterly, csvToTxns, uid, ymd, rateOn, placesOf, matchRule, migrateSettings, payeeKey, memoKey, memoFind, companyFor, jobSite };
+if (typeof module !== 'undefined') module.exports = { hav, llToSpc, spcToLl, detectTrips, classifyTrip, simulateDay, books, taxOn, quarterly, csvToTxns, uid, ymd, rateOn, placesOf, matchRule, migrateSettings, payeeKey, memoKey, memoFind, companyFor, jobSite, refileOwnJobTrips };

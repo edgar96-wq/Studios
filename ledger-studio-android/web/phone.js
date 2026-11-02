@@ -15,9 +15,7 @@ window.__ledgerEvt = (type, json) => {
   let d = {}; try { d = JSON.parse(json); } catch (e) { }
   if (type === 'track') { N.state = d; if (!d.running) syncTrips(); phoneRefreshUI(); }
   else if (type === 'perms') { N.perms = d; phoneRefreshUI(); }
-  else if (type === 'odcode') odShowCode(d);
-  else if (type === 'odauth') odAuthDone(d);
-  else if (type === 'odprogress') toast(`Reading OneDrive jobs: ${d.done} of ${d.total}…`);
+  else if (type === 'ms') msDone(d);
   else if (type === 'saved') toast(d.ok ? `Saved ${d.name} to ${d.where}.` : d.cancelled ? 'Save cancelled.' : 'Not saved: ' + (d.msg || 'unknown error'));
   else if (N.cbs[type]) { const cb = N.cbs[type]; delete N.cbs[type]; cb(d); }
 };
@@ -185,103 +183,94 @@ async function phoneReceipt(file, txId) {
 /* keep trips fresh: when the app comes back to the screen */
 document.addEventListener('visibilitychange', () => { if (NATIVE && document.visibilityState === 'visible') { nativeRefresh(); syncTrips(true); phoneRefreshUI(); } });
 
-/* ---------- OneDrive jobs (Integration Spec §5–6): read-only, through the phone ----------
-   The phone downloads each GAIA/Jobs/<job_id>/job.json and passes on only job_id, company, status, address and
-   State Plane N/E. Each becomes a job site (geofence) with the company as client. */
-const OD = { busy: false, code: null };
-function odStatus() { return NATIVE ? nativeJSON('odStatus') : {}; }
-function odFolder() { return S.settings.odFolder || 'GAIA/Jobs'; }
+/* ---------- OneDrive work (Integration Spec §5–6): read-only, through the phone ----------
+   Sign-in: Microsoft's MSAL, the same app registration as Crew Studio, permission Files.Read only.
+   The phone reads GAIA/Jobs/<job_id>/job.json (only job_id, company, status, wo.address) and field/<job_id>.txt
+   (only the centre of the points); everything else in job.json stays in OneDrive. Each job becomes a job site. */
+const OD = { busy: false };
+const OD_DONE = ['cancelled', 'paid'];
+function odStatus() { const s = NATIVE ? nativeJSON('msStatus') : {}; return { connected: !!s.signedIn, account: s.account || '' }; }
 async function checkOneDriveJobs(opts = {}) {
   if (!NATIVE || OD.busy) return;
   if (!odStatus().connected) { if (!opts.quiet) openOneDrive(); return; }
   OD.busy = true;
-  if (!opts.quiet) toast('Checking OneDrive for new jobs…');
+  if (!opts.quiet) toast('Checking OneDrive for new work…');
   try {
-    const seen = opts.all ? {} : (S.settings.odSeen || {});
-    const r = await nativeAsk('odJobs', 'odjobs', JSON.stringify({ folder: odFolder(), seen }), 10 * 60e3);
-    if (r.error) { if (!opts.quiet || /sign in/i.test(r.error)) toast(r.error); return; }
-    const res = await applyJobRecords(r.jobs || [], { source: 'onedrive', billTo: S.settings.odBillTo || 'own' });
-    S.settings.odSeen = { ...(opts.all ? {} : seen), ...(r.seen || {}) };
-    S.settings.odLast = new Date().toISOString(); S.settings.odCount = r.folders || 0;
+    const known = opts.all ? {} : (S.settings.odKnown || {});
+    const r = await nativeAsk('odJobs', 'odjobs', JSON.stringify({ known, all: !!opts.all }), 10 * 60e3);
+    if (r.error) {
+      const msg = r.code === 'signin' ? 'Sign in to OneDrive again (Places → OneDrive).' : r.code === 'offline' ? 'No signal: OneDrive will be checked next time.' : r.code === 'nofolder' ? 'There is no GAIA/Jobs folder in this OneDrive.' : 'OneDrive: ' + r.error;
+      if (!opts.quiet || r.code === 'signin') toast(msg);
+      return;
+    }
+    const next = { ...known }, rows = [];
+    let waiting = 0, located = 0;
+    for (const it of r.items || []) {
+      if (it.etag == null) { waiting++; continue; } /* no job.json yet: it is still being made */
+      const k = next[it.name] = { ...(next[it.name] || {}), j: it.etag };
+      if (it.job) { k.code = it.job.code; k.status = it.job.status; }
+      if (it.pEtag) k.p = it.pEtag;
+      const code = k.code || it.name, ex = S.jobs.find(j => j.code === code);
+      if (!it.job && !it.center) continue;
+      if (!it.job && !ex) continue; /* points for a job you deleted here: leave it deleted */
+      const row = { ...(it.job || { code }) };
+      if (it.center) { row.pointsN = it.center.spcN; row.pointsE = it.center.spcE; located++; }
+      rows.push(row);
+      k.wantPoints = !OD_DONE.includes(k.status || '');
+    }
+    for (const name of Object.keys(next)) if (next[name].wantPoints === undefined) next[name].wantPoints = !OD_DONE.includes(next[name].status || '');
+    const res = await applyJobRecords(rows, { source: 'onedrive', reimburse: S.settings.reimburse || {} });
+    S.settings.odKnown = next; S.settings.odLast = new Date().toISOString(); S.settings.odCount = (r.items || []).length;
     await Store.putSettings();
     const n = res.changed ? await reclassify() : 0;
     render(); if (document.getElementById('odSheet')) openOneDrive();
     const parts = [];
     if (res.added) parts.push(`${res.added} new job${res.added > 1 ? 's' : ''}`);
     if (res.updated) parts.push(`${res.updated} updated`);
+    if (located) parts.push(`${located} placed from field points`);
     if (res.noCoords) parts.push(`${res.noCoords} without a location (open the job and add it)`);
-    if (r.waiting) parts.push(`${r.waiting} folder${r.waiting > 1 ? 's' : ''} without a job.json yet`);
-    if (parts.length || !opts.quiet) toast((parts.length ? parts.join(', ') : 'No new jobs') + ' from OneDrive.' + (n ? ` ${n} trips re-filed.` : ''));
+    if (waiting) parts.push(`${waiting} folder${waiting > 1 ? 's' : ''} without a job.json yet`);
+    if (parts.length || !opts.quiet) toast((parts.length ? parts.join(', ') : 'No new work') + ' from OneDrive.' + (n ? ` ${n} trips re-filed.` : ''));
   } finally { OD.busy = false; }
 }
-function odShowCode(d) {
-  OD.code = d;
-  const box = document.getElementById('odCode'); if (!box) return;
-  box.hidden = false;
-  box.innerHTML = `<div class="why">On the Microsoft page, enter this code and sign in with the account that has the GAIA folder. Ledger Studio only asks to <b>read</b> files.</div>
-    <div class="odcode num">${esc(d.code)}</div>
-    <div class="btns"><button type="button" class="btn" data-act="od-open">${ic('links')}Copy code and open Microsoft</button></div>
-    <div class="note">Waiting for you to finish signing in…</div>`;
-}
-async function odAuthDone(d) {
-  OD.code = null;
-  if (d.error) { toast(d.error); if (document.getElementById('odSheet')) openOneDrive(); return; }
-  toast('OneDrive connected' + (d.account ? ` (${d.account})` : '') + '. Checking for jobs…');
-  if (document.getElementById('odSheet')) openOneDrive();
-  await checkOneDriveJobs({ all: true });
+async function msDone(d) {
+  if (d.ok) {
+    toast('OneDrive connected' + (d.account ? ` (${d.account})` : '') + '. Checking for work…');
+    if (document.getElementById('odSheet')) openOneDrive();
+    await checkOneDriveJobs({ all: !S.settings.odLast });
+  } else {
+    if (d.signedOut) toast('Signed out of OneDrive. Job sites stay in Ledger.');
+    else if (d.cancelled) toast('Sign-in cancelled.');
+    else toast(d.code === 'offline' ? 'No signal. Try again when you have internet.' : 'Sign-in failed: ' + (d.error || 'unknown error'));
+    if (document.getElementById('odSheet')) openOneDrive();
+  }
 }
 function openOneDrive() {
-  const s = S.settings, st = odStatus(), bill = s.odBillTo || 'own';
+  const s = S.settings, st = odStatus();
   const last = s.odLast ? `Last checked ${dlab(s.odLast.slice(0, 10), { month: 'short', day: 'numeric' })} at ${tm(s.odLast)} · ${s.odCount || 0} job folders` : 'Not checked yet';
-  const odJobs = S.jobs.filter(j => j.source === 'onedrive').length;
-  openSheet('OneDrive jobs', `<div class="form" id="odSheet">
+  const odJobs = S.jobs.filter(j => j.source === 'onedrive'), fromPts = odJobs.filter(j => j.coordFrom === 'points').length;
+  const paying = Object.keys(s.reimburse || {}).filter(k => s.reimburse[k]);
+  openSheet('OneDrive work', `<div class="form" id="odSheet">
     ${NATIVE ? '' : `<div class="why">OneDrive is read by the Android app. Here you can import <b>ledger-jobs.json</b> instead.</div>`}
     <div class="row static" style="grid-template-columns:auto 1fr"><div class="when rank">${ic('files')}</div><div class="main">
       <div class="title">${st.connected ? 'Connected' + (st.account ? ' · ' + esc(st.account) : '') : 'Not connected'}</div>
-      <div class="sub">${st.connected ? esc(last) + ` · ${odJobs} job sites from OneDrive` : 'Reads ' + esc(odFolder()) + ': each job folder\'s job.json (job number, company, address, coordinates only).'}</div></div></div>
-    <div class="pick"><span class="lbl">These jobs count as</span><div class="seg" id="odBill">
-      <button type="button" data-v="own" aria-pressed="${bill === 'own'}">My business (deductible)</button>
-      <button type="button" data-v="employer" aria-pressed="${bill === 'employer'}">Employer job (reimbursed)</button></div>
-      <div class="why">My business: the companies pay you per job as a contractor (1099), so the miles are deducted on your Schedule C. Employer: only if a company pays you as an employee and reimburses the miles.</div></div>
-    ${NATIVE ? `<label class="fld">Folder in OneDrive<input id="odFolder" value="${esc(odFolder())}"></label>
-    ${st.connected ? `<div class="btns"><button class="btn" data-act="od-check">${ic('trips')}Check for new jobs</button><button class="btn ghost" data-act="od-all">Re-read all jobs</button><button class="btn danger" data-act="od-off">Disconnect</button></div>`
-      : `<label class="fld">Application (client) ID<input id="odClient" value="${esc(st.clientId || s.odClientId || '')}" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocapitalize="off" spellcheck="false"></label>
-    <div class="btns"><button class="btn" data-act="od-connect">${ic('check')}Sign in to OneDrive</button></div>
-    <div id="odCode" hidden></div>
-    <details class="why"><summary><b>Get a client ID (once, about 5 minutes)</b></summary><ol style="margin:8px 0 0;padding-left:18px">
-      <li>On a computer, open <b>entra.microsoft.com</b> and sign in with your Microsoft account.</li>
-      <li>App registrations → <b>New registration</b>. Name: Ledger Studio. Supported account types: <b>accounts in any organizational directory and personal Microsoft accounts</b>. Leave Redirect URI empty → Register.</li>
-      <li>Authentication → <b>Allow public client flows: Yes</b> → Save.</li>
-      <li>API permissions: Microsoft Graph <b>Files.Read</b> (delegated) is all it needs.</li>
-      <li>Overview → copy the <b>Application (client) ID</b> and paste it above.</li></ol></details>`}` : ''}
-    <div class="btns"><button class="btn ghost" data-act="imp-jobs">${ic('up')}Import ledger-jobs.json instead</button></div></div>`, (root) => {
-    const segB = $('#odBill', root); if (segB) segB.onclick = async (e) => {
-      const b = e.target.closest('button'); if (!b) return; S.settings.odBillTo = b.dataset.v;
-      $$('#odBill button', root).forEach(x => x.setAttribute('aria-pressed', x === b));
-      const mine = S.jobs.filter(j => j.source === 'onedrive' || j.source === 'ledger-jobs');
-      for (const j of mine) j.billTo = b.dataset.v;
-      await Store.putSettings(); await Store.putMany('jobs', mine); const n = await reclassify(); render();
-      toast(`${mine.length} survey job${mine.length === 1 ? '' : 's'} now count as ${b.dataset.v === 'own' ? 'my business' : 'employer jobs'}.` + (n ? ` ${n} trips re-filed.` : ''));
-    };
-    const f = $('#odFolder', root); if (f) f.onchange = async () => { S.settings.odFolder = f.value.trim().replace(/^\/+|\/+$/g, '') || 'GAIA/Jobs'; S.settings.odSeen = {}; await Store.putSettings(); };
-    if (OD.code && st.signingIn) odShowCode(OD.code);
-  });
+      <div class="sub">${st.connected ? esc(last) + ` · ${odJobs.length} job sites, ${fromPts} placed from field points` : 'Reads GAIA/Jobs: each job\'s job.json (job number, company, status, address) and the centre of its field points. Read-only.'}</div></div></div>
+    <div class="why">Survey jobs are your own contract work (1099): the miles are deductible, and the company that hires you is the client. ${paying.length ? `Paying your mileage: <b>${paying.map(esc).join(', ')}</b> (their jobs count as employer jobs).` : 'If a company pays your mileage, mark it in Setup → Companies.'}</div>
+    ${NATIVE ? (st.connected
+      ? `<div class="btns"><button class="btn" data-act="od-check">${ic('trips')}Check for new work</button><button class="btn ghost" data-act="od-all">Re-read all jobs</button><button class="btn danger" data-act="od-off">Sign out</button></div>`
+      : `<div class="btns"><button class="btn" data-act="od-connect">${ic('check')}Connect OneDrive</button></div>
+    <div class="why">Microsoft's sign-in page opens once; after that the app renews access by itself. Ledger Studio asks only to <b>read</b> files.</div>`) : ''}
+    <div class="btns"><button class="btn ghost" data-act="imp-jobs">${ic('up')}Import ledger-jobs.json instead</button></div></div>`);
 }
 function odAction(act) {
   if (act === 'od-sheet') return openOneDrive();
   if (act === 'od-check') { closeSheet(); return checkOneDriveJobs(); }
   if (act === 'od-all') { closeSheet(); return checkOneDriveJobs({ all: true }); }
-  if (act === 'od-open' && OD.code) return nativeCall('odOpen', OD.code.uri, OD.code.code);
-  if (act === 'od-off') { nativeCall('odDisconnect'); toast('OneDrive disconnected. Job sites stay in Ledger.'); return openOneDrive(); }
-  if (act === 'od-connect') {
-    const cid = ($('#odClient') || {}).value || '';
-    if (!/^[0-9a-f-]{36}$/i.test(cid.trim())) return toast('Paste the Application (client) ID: 36 letters, numbers and dashes.');
-    S.settings.odClientId = cid.trim(); Store.putSettings();
-    nativeCall('odConnect', cid.trim()); toast('Asking Microsoft for a sign-in code…');
-  }
+  if (act === 'od-off') return nativeCall('msSignOut');
+  if (act === 'od-connect') { nativeCall('msSignIn'); toast('Opening Microsoft sign-in…'); }
 }
 
-/* ---------- pull down to check for new trips and jobs ---------- */
+/* ---------- pull down to check for new trips and work ---------- */
 async function refreshFromPhone() { await syncTrips(); if (odStatus().connected) await checkOneDriveJobs(); else toast(N.state.running ? 'A drive is being recorded; it appears after you park.' : 'Up to date.'); }
 (function pullToRefresh() {
   if (!NATIVE) return;
@@ -291,7 +280,7 @@ async function refreshFromPhone() { await syncTrips(); if (odStatus().connected)
   addEventListener('touchmove', (e) => {
     if (y0 == null) return; const dy = e.touches[0].clientY - y0; if (dy < 12) return;
     ready = dy > 90; ind.classList.add('on'); ind.style.transform = `translate(-50%, ${Math.min(dy, 140) * 0.6}px)`;
-    ind.textContent = ready ? 'Release to check for new trips and jobs' : 'Pull to check for new trips and jobs';
+    ind.textContent = ready ? 'Release to check for new trips and work' : 'Pull to check for new trips and work';
   }, { passive: true });
   addEventListener('touchend', () => { if (y0 == null) return; y0 = null; ind.classList.remove('on'); ind.style.transform = ''; if (ready) { ready = false; refreshFromPhone(); } }, { passive: true });
 })();

@@ -224,7 +224,7 @@ function vJobs() {
       <div class="list">${[homeP, ...places].map(p => `<button class="row" data-place="${p.id}"><div class="when rank">${ic(p.id === 'home' ? 'home' : 'pin')}</div><div class="main"><div class="title">${esc(p.label)}</div><div class="sub num">${llTxt(p)}${p.address ? ' · ' + esc(p.address) : ''}</div></div><div class="amt" style="font-size:13px;color:var(--muted)">${usedBy(p.id)} rule${usedBy(p.id) === 1 ? '' : 's'}</div></button>`).join('')}</div>
     </section>
     <section>
-    <div class="sec-head"><h2>Job sites</h2><div class="btns"><button class="chip-btn plum" data-act="new-job">${ic('pin')}Add job</button>${NATIVE ? `<button class="chip-btn" data-act="${odStatus().connected ? 'od-check' : 'od-sheet'}">${ic('files')}${odStatus().connected ? 'Check for new jobs' : 'Connect OneDrive'}</button>` : ''}<button class="chip-btn" data-act="${NATIVE ? 'od-sheet' : 'imp-jobs'}">${ic('up')}${NATIVE ? 'OneDrive & import' : 'Import ledger-jobs.json'}</button></div></div>
+    <div class="sec-head"><h2>Job sites</h2><div class="btns"><button class="chip-btn plum" data-act="new-job">${ic('pin')}Add job</button>${NATIVE ? `<button class="chip-btn" data-act="${odStatus().connected ? 'od-check' : 'od-sheet'}">${ic('files')}${odStatus().connected ? 'Check for new work' : 'Connect OneDrive'}</button>` : ''}<button class="chip-btn" data-act="${NATIVE ? 'od-sheet' : 'imp-jobs'}">${ic('up')}${NATIVE ? 'OneDrive & import' : 'Import ledger-jobs.json'}</button></div></div>
     <p class="note" style="margin:-4px 0 10px">Every job is a geofence. Trips that start or end inside one are filed as business with the job number. Jobs billed by your employer are kept apart because the company reimburses them.</p>
     ${rows.length ? `<div class="list">${rows.map(j => {
       const tr = S.trips.filter(t => (t.jobIds || []).includes(j.id)), m = tr.reduce((a, t) => a + t.miles, 0), inc = S.txns.filter(x => x.jobId === j.id && x.kind === 'income').reduce((a, x) => a + x.amount, 0);
@@ -434,7 +434,8 @@ function openJob(id) {
     $('#jSave', root).onclick = async () => {
       j.code = $('#jCode', root).value.trim(); if (!j.code) { toast('Enter the job number.'); return; }
       j.address = $('#jAddr', root).value.trim(); j.client = $('#jClient', root).value.trim(); j.billTo = bill;
-      const a = parseFloat(lat.value), o = parseFloat(lon.value); j.lat = isFinite(a) ? a : null; j.lon = isFinite(o) ? o : null;
+      const a = parseFloat(lat.value), o = parseFloat(lon.value), was = [j.lat, j.lon]; j.lat = isFinite(a) ? a : null; j.lon = isFinite(o) ? o : null;
+      if (j.lat !== was[0] || j.lon !== was[1]) j.coordFrom = j.lat != null ? 'manual' : null; /* set by hand: field points and lookups won't move it */
       if (j.lat != null && (j.lat < 24 || j.lat > 31.5 || j.lon > -79 || j.lon < -88)) { toast('Those coordinates are outside Florida. Check the sign on longitude.'); return; }
       const i = S.jobs.findIndex(x => x.id === j.id); if (i >= 0) S.jobs[i] = j; else S.jobs.push(j);
       closeSheet(); await Store.put('jobs', j); const n = await reclassify(); render(); toast('Job saved.' + (n ? ` ${n} trip${n > 1 ? 's' : ''} re-filed.` : ''));
@@ -626,8 +627,11 @@ function openSetup() {
     <h3>Vehicle</h3>
     <div class="f2"><label class="fld">Vehicle<input id="sVN" value="${esc(s.vehicle.name || '')}" placeholder="2021 pickup"></label><label class="fld">Placed in service<input type="date" id="sVS" value="${s.vehicle.inService || ''}"></label></div>
     <div class="f2"><label class="fld">Odometer Jan 1<input id="sVO1" inputmode="numeric" value="${s.vehicle.odoStart ?? ''}"></label><label class="fld">Odometer Dec 31<input id="sVO2" inputmode="numeric" value="${s.vehicle.odoEnd ?? ''}"></label></div>
+    <h3>Companies</h3>
+    <div class="why">Survey jobs are your own contract work (1099), so their miles are deductible. Tick a company only if it pays your mileage: its jobs then count as employer jobs.</div>
+    <div class="list">${surveyCompanies().map((name, i) => `<label class="check"><input type="checkbox" id="sReimb${i}" data-company="${esc(name)}" ${(s.reimburse || {})[name] ? 'checked' : ''}><span>${esc(name)}<small>Pays my mileage</small></span></label>`).join('')}</div>
     <h3>Jobs from OneDrive</h3>
-    <div class="why">Survey jobs come from GAIA/Jobs. <button class="chip-btn" data-act="od-sheet" style="margin-top:6px">${ic('files')}OneDrive jobs</button></div>
+    <div class="why">Survey jobs come from GAIA/Jobs. <button class="chip-btn" data-act="od-sheet" style="margin-top:6px">${ic('files')}OneDrive work</button></div>
     <h3>Data</h3>
     <div class="why">${Store.mode === 'cloud' ? 'Saved to your Claude account and visible only to you.' : Store.mode === 'device' ? (NATIVE ? 'Saved on this phone only. Make a backup each month (Files → Backup) and keep it in OneDrive.' : 'Saved in this browser only.') : 'This window cannot save. Open the page normally to keep data.'} Use Files → Backup to keep a copy.</div>
     <div class="btns" style="justify-content:space-between"><div class="btns"><button class="btn" id="sSave">${ic('check')}Save</button><button class="btn ghost" id="sCancel">Cancel</button></div>${hasSample() ? '<button class="btn danger" data-act="clear-sample">Clear sample data</button>' : ''}</div></div>`, (root) => {
@@ -644,9 +648,12 @@ function openSetup() {
       s.homeOffice = homeOffice; s.filing = filing; s.radiusFt = Math.max(100, parseInt($('#sR', root).value) || 600);
       s.w2Wages = parseFloat($('#sW2', root).value) || 0; s.ssWageBase = parseFloat($('#sSS', root).value) || 184500;
       const num = (v) => v === '' ? null : parseFloat(v);
+      const reimb = {}; $$('[data-company]', root).forEach(cb => { if (cb.checked) reimb[cb.dataset.company] = true; });
+      const billingChanged = JSON.stringify(reimb) !== JSON.stringify(s.reimburse || {}); s.reimburse = reimb;
       s.vehicle = { name: $('#sVN', root).value.trim(), inService: $('#sVS', root).value, odoStart: num($('#sVO1', root).value), odoEnd: num($('#sVO2', root).value) };
       s.rates = s.rates.filter(r => r.from && r.cents > 0).sort((a, b) => a.from.localeCompare(b.from));
-      S.settings = s; closeSheet(); showStore(); await Store.putSettings(); const n = await reclassify(); render(); toast('Setup saved.' + (n ? ` ${n} trip${n > 1 ? 's' : ''} re-filed.` : ''));
+      S.settings = s; closeSheet(); showStore(); await Store.putSettings();
+      const n = (billingChanged ? await applyCompanyBilling() : 0) + await reclassify(); render(); toast('Setup saved.' + (n ? ` ${n} trip${n > 1 ? 's' : ''} re-filed.` : ''));
     };
   });
 }
@@ -716,6 +723,21 @@ async function importCSV(text, name) {
   const auto = add.filter(t => t.autoFiled).length, skip = r.txns.length - add.length;
   toast(`${add.length} transactions imported: ${auto} filed by your merchant rules, ${add.length - auto} to review` + (skip ? `, ${skip} already here` : '') + '.');
 }
+/* the companies that hire you: the WO-prefix table (Integration Spec §3) plus any client of a survey job */
+function surveyCompanies() {
+  const set = new Set(COMPANY_PREFIX.map(x => x[1]));
+  for (const j of S.jobs) if (SURVEY_SOURCES.includes(j.source) && j.client) set.add(j.client);
+  return [...set];
+}
+/* survey jobs: own contract work unless the company pays the mileage; trips filed as employer for own jobs → business */
+async function applyCompanyBilling() {
+  const rb = S.settings.reimburse || {}, jobs = [];
+  for (const j of S.jobs) if (SURVEY_SOURCES.includes(j.source)) { const want = rb[j.client] ? 'employer' : 'own'; if (j.billTo !== want) { j.billTo = want; jobs.push(j); } }
+  if (jobs.length) await Store.putMany('jobs', jobs);
+  const fixed = refileOwnJobTrips(S);
+  if (fixed.length) await Store.putMany('trips', fixed);
+  return fixed.length;
+}
 /* Job records → job sites, from OneDrive job.json picks or a ledger-jobs.json file. Without coordinates, the phone looks the address up. */
 async function applyJobRecords(rows, o) {
   const out = []; let added = 0, updated = 0, noCoords = 0;
@@ -738,7 +760,7 @@ async function importJobs(text, name) {
   const d = JSON.parse(text), list = Array.isArray(d) ? d : (d.jobs || []);
   if (!list.length) { toast('No jobs found. Expected {"format":"ledger-jobs","jobs":[…]}.'); return; }
   closeSheet(); toast(`Reading ${list.length} jobs…`);
-  const res = await applyJobRecords(list, { source: 'ledger-jobs', billTo: S.settings.odBillTo || 'own' }); /* survey jobs: contractor work, so deductible unless set otherwise */
+  const res = await applyJobRecords(list, { source: 'ledger-jobs', reimburse: S.settings.reimburse || {} }); /* survey jobs are own contract work */
   const n = res.changed ? await reclassify() : 0; U.tab = 'jobs'; renderTabs(); render(); tabJoin(true);
   toast(`${res.added} new, ${res.updated} updated from ${name}.` + (res.noCoords ? ` ${res.noCoords} without a location.` : '') + (n ? ` ${n} trips re-filed.` : ''));
 }
@@ -786,7 +808,7 @@ function exportData(kind) {
 /* ---------- connections (integration foundation) ---------- */
 const CONNECTORS = [
   { name: 'Phone GPS', kind: 'Trips', status: NATIVE ? 'On this phone' : 'Android app', st: NATIVE ? 'c-ok' : 'c-business', what: 'Background location with geofences around home, your saved places and every active job. Produces the same Trip records you see here.' },
-  { name: 'OneDrive · GAIA/Jobs', kind: 'Jobs', status: NATIVE ? (odStatus().connected ? 'Connected' : 'Ready to connect') : 'In the Android app', st: NATIVE && odStatus().connected ? 'c-ok' : 'c-business', what: 'Reads each job folder\'s job.json (read-only): job number, company, address and State Plane N/E. Buyer, seller and agent details are never read into Ledger. Checks when the app opens and when you pull down.', act: 'od-sheet', actLabel: 'Open' },
+  { name: 'OneDrive · GAIA/Jobs', kind: 'Jobs', status: NATIVE ? (odStatus().connected ? 'Connected' : 'Ready to connect') : 'In the Android app', st: NATIVE && odStatus().connected ? 'c-ok' : 'c-business', what: 'Read-only. From each job folder: job.json (job number, company, status, address) and the centre of field/<job_id>.txt for the position. Buyer, seller and agent details are never read into Ledger. Checks when the app opens and when you pull down.', act: 'od-sheet', actLabel: 'Open' },
   { name: 'ledger-jobs.json', kind: 'Jobs', status: 'Import ready', st: 'c-ok', what: 'The jobs file Atlas builds from all job.json (format ledger-jobs). Use it when OneDrive is not connected.', act: 'imp-jobs' },
   { name: 'Surveyor Studio (field app)', kind: 'Jobs · Trips', status: 'Planned', st: 'c-personal', what: "The day's work orders and route feed job sites in the morning; arrival and departure times come back with the field data." },
   { name: 'Bank & card statements', kind: 'Transactions', status: 'Import ready', st: 'c-ok', what: 'CSV download from your bank or card, any time. Merchants you have confirmed are filed automatically; transfers and card payments are kept out of income. Rows are matched by date, amount and description, so overlapping uploads (or a later live feed) never duplicate them.', act: 'imp-csv' },
@@ -940,7 +962,9 @@ if (document.fonts) document.fonts.ready.then(() => tabJoin(false));
 /* ---------- boot ---------- */
 (async function boot() {
   paintMap(); renderTabs(); renderRails(); render(); tabJoin(false);
-  await Store.init(); await loadInto(); render();
+  await Store.init(); await loadInto();
+  if (!S.settings.migOwnJobs) { const n = await applyCompanyBilling(); S.settings.migOwnJobs = true; await Store.putSettings(); if (n) setTimeout(() => toast(`${n} survey-job trip${n > 1 ? 's' : ''} re-filed as business (contract work).`), 1500); }
+  render();
   if (NATIVE) { nativeRefresh(); render(); await syncTrips(true); if (odStatus().connected) checkOneDriveJobs({ quiet: true }); }
 })();
 $('#yearPick').addEventListener('change', (e) => { YEAR = +e.target.value; showStore(); render(); tabJoin(false); });

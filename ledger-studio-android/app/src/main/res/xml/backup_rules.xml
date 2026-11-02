@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- OneDrive sign-in tokens never go into Android backups -->
+<!-- Android backups keep the books (the page's storage) but never sign-in tokens or settings files (Microsoft's MSAL keeps its tokens there) -->
 <full-backup-content>
-    <exclude domain="sharedpref" path="od.xml" />
+    <exclude domain="sharedpref" path="." />
 </full-backup-content>

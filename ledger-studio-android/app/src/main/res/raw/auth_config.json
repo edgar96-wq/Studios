@@ -1,0 +1,16 @@
+{
+  "client_id" : "e5c6b607-1663-4f0a-b51c-74996aecab0c",
+  "authorization_user_agent" : "DEFAULT",
+  "redirect_uri" : "msauth://com.ledgerstudio.app/yDTjVnj6whCYU29pPk8Ob2JPWrU%3D",
+  "account_mode" : "SINGLE",
+  "broker_redirect_uri_registered" : false,
+  "authorities" : [
+    {
+      "type": "AAD",
+      "audience": {
+        "type": "AzureADandPersonalMicrosoftAccount",
+        "tenant_id": "common"
+      }
+    }
+  ]
+}
