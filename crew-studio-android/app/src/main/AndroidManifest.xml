@@ -37,12 +37,21 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <!-- Microsoft sign-in comes back here (app registration: Mobile and desktop, com.crewstudio.app://auth) -->
+        </activity>
+
+        <!-- MSAL: Microsoft's sign-in page comes back here. Path = the signing key hash (q+JQXAeUCkn/I9+YG0TtaSLYbQA=),
+             the same as the redirect URI msauth://com.crewstudio.app/q%2BJQXAeUCkn%2FI9%2BYG0TtaSLYbQA%3D in Entra -->
+        <activity
+            android:name="com.microsoft.identity.client.BrowserTabActivity"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="com.crewstudio.app" android:host="auth" />
+                <data
+                    android:scheme="msauth"
+                    android:host="com.crewstudio.app"
+                    android:path="/q+JQXAeUCkn/I9+YG0TtaSLYbQA=" />
             </intent-filter>
         </activity>
 

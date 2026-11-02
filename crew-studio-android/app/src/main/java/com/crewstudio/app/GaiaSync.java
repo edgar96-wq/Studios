@@ -29,7 +29,7 @@ final class GaiaSync {
 
     /** Called after sign-in and whenever the app opens. Cheap: keeps work that is already scheduled. */
     static void schedule(Context c) {
-        if (!MsAuth.signedIn(c)) { cancel(c); return; }
+        if (!Ms.signedIn(c)) { cancel(c); return; }
         WorkManager wm = WorkManager.getInstance(c);
         wm.enqueueUniquePeriodicWork(HOURLY, ExistingPeriodicWorkPolicy.KEEP,
                 new PeriodicWorkRequest.Builder(GaiaSyncWorker.class, 60, TimeUnit.MINUTES, 15, TimeUnit.MINUTES)

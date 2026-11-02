@@ -49,7 +49,7 @@ public class GaiaWidget extends AppWidgetProvider {
     public void onReceive(Context c, Intent i) {
         super.onReceive(c, i);
         if (ACTION_REFRESH.equals(i.getAction())) {
-            if (MsAuth.signedIn(c)) { checking(c, true); GaiaSync.now(c); }
+            if (Ms.signedIn(c)) { checking(c, true); GaiaSync.now(c); }
             updateAll(c);
         }
     }
@@ -139,7 +139,7 @@ public class GaiaWidget extends AppWidgetProvider {
         String state = sync == null ? "off" : sync.optString("state", "off");
         String last = sync == null ? "" : sync.optString("last", "");
         if ("null".equals(last)) last = "";
-        boolean signed = MsAuth.signedIn(c);
+        boolean signed = Ms.signedIn(c);
         if (rem != null && after(rem.optString("checked"), last)) { // the background check is newer than the app's own
             String rs = rem.optString("state");
             if ("signin".equals(rs)) return "Sign in needed · open Crew Studio";
@@ -151,7 +151,8 @@ public class GaiaWidget extends AppWidgetProvider {
                 return s;
             }
             String lastOk = rem.optString("lastOk", last);
-            String head = "offline".equals(rs) ? "Offline" : "nofolder".equals(rs) ? "No GAIA/Jobs folder" : "OneDrive didn't answer";
+            String head = "offline".equals(rs) ? "Offline" : "nofolder".equals(rs) ? "No GAIA/Jobs folder" : "denied".equals(rs) ? "OneDrive permission refused"
+                    : "throttled".equals(rs) ? "OneDrive busy" : "OneDrive didn't answer";
             return head + (lastOk.isEmpty() ? "" : " · checked " + when(lastOk));
         }
         switch (state) {

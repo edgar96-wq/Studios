@@ -1,7 +1,6 @@
 package com.crewstudio.app;
 
 import android.content.Context;
-import android.net.Uri;
 
 import androidx.annotation.NonNull;
 import androidx.work.Worker;
@@ -10,32 +9,25 @@ import androidx.work.WorkerParameters;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.List;
 
 /**
- * The background check behind GAIA Today: lists OneDrive GAIA/Jobs, reads job.json eTags 20 at a time,
- * and counts jobs that are new (ordered or scheduled, not on this phone yet) or changed by the office.
- * Only job folder names and counts are kept ("remote" in today.json); job.json is read in memory and dropped,
- * so no buyer, seller or phone numbers are stored. Importing still happens in the app, where the crew decides.
+ * The background check behind GAIA Today: lists GAIA/Jobs (same native Graph calls as the app) and counts jobs that
+ * are new (ordered or scheduled, not on this phone yet) or changed by the office. Only folder names and counts are kept
+ * ("remote" in today.json); job.json is read in memory and dropped, so no buyer, seller or phone numbers are stored.
+ * Importing still happens in the app, where the crew decides.
  */
 public class GaiaSyncWorker extends Worker {
     public GaiaSyncWorker(@NonNull Context c, @NonNull WorkerParameters p) { super(c, p); }
-
-    private static final String GRAPH = "https://graph.microsoft.com/v1.0";
 
     @NonNull
     @Override
     public Result doWork() {
         Context c = getApplicationContext();
-        if (!MsAuth.signedIn(c)) { GaiaWidget.checking(c, false); GaiaWidget.updateAll(c); return Result.success(); }
-        JSONObject today = TodayStore.read(c), old = today.optJSONObject("remote");
-        JSONObject gaia = today.optJSONObject("gaia");
-        String root = gaia != null ? gaia.optString("root", "GAIA/Jobs") : "GAIA/Jobs";
+        if (!Ms.signedIn(c)) { GaiaWidget.checking(c, false); GaiaWidget.updateAll(c); return Result.success(); }
+        JSONObject today = TodayStore.read(c), old = today.optJSONObject("remote"), gaia = today.optJSONObject("gaia");
         JSONObject known = gaia != null && gaia.optJSONObject("known") != null ? gaia.optJSONObject("known") : new JSONObject();
         JSONArray open = gaia != null && gaia.optJSONArray("open") != null ? gaia.optJSONArray("open") : new JSONArray().put("ordered").put("scheduled");
         JSONObject seenBefore = old != null && old.optJSONObject("seen") != null ? old.optJSONObject("seen") : new JSONObject();
@@ -43,60 +35,36 @@ public class GaiaSyncWorker extends Worker {
         JSONObject remote = new JSONObject();
         try {
             remote.put("checked", OffsetDateTime.now().truncatedTo(ChronoUnit.SECONDS).toString());
-            String tok = MsAuth.access(c);
-            List<String> names = new ArrayList<>();
-            String url = GRAPH + path(root) + ":/children?$select=name,folder&$top=999";
-            while (url != null) {
-                JSONObject d = new JSONObject(MsAuth.get(url, tok));
-                JSONArray v = d.optJSONArray("value");
-                for (int i = 0; v != null && i < v.length(); i++) if (v.getJSONObject(i).has("folder")) names.add(v.getJSONObject(i).getString("name"));
-                url = d.optString("@odata.nextLink", null);
-                if (url != null && url.isEmpty()) url = null;
+            // what the page has, plus new jobs already classified: their job.json isn't downloaded again
+            JSONObject ask = new JSONObject(known.toString());
+            for (Iterator<String> it = seenBefore.keys(); it.hasNext(); ) {
+                String k = it.next();
+                if (!ask.has(k)) ask.put(k, seenBefore.getJSONObject(k).optString("tag"));
             }
-            String[] tags = new String[names.size()];
-            for (int i = 0; i < names.size(); i += 20) { // one round trip per 20 jobs
-                JSONArray reqs = new JSONArray();
-                for (int k = i; k < Math.min(names.size(), i + 20); k++)
-                    reqs.put(new JSONObject().put("id", String.valueOf(k)).put("method", "GET")
-                            .put("url", path(root + "/" + names.get(k) + "/job.json").substring(1) + "?$select=eTag,lastModifiedDateTime"));
-                JSONObject b = new JSONObject(MsAuth.post(GRAPH + "/$batch", tok, new JSONObject().put("requests", reqs).toString()));
-                JSONArray rs = b.optJSONArray("responses");
-                for (int r = 0; rs != null && r < rs.length(); r++) {
-                    JSONObject x = rs.getJSONObject(r), body = x.optJSONObject("body");
-                    if (x.optInt("status") == 200 && body != null) tags[Integer.parseInt(x.getString("id"))] = body.optString("eTag", body.optString("lastModifiedDateTime"));
-                }
-            }
+            JSONArray list = Graph.listJobs(c, ask);
             int nNew = 0, nChanged = 0;
             JSONArray newIds = new JSONArray();
             JSONObject seen = new JSONObject();
-            for (int i = 0; i < names.size(); i++) {
-                String id = names.get(i), tag = tags[i];
+            for (int i = 0; i < list.length(); i++) {
+                JSONObject e = list.getJSONObject(i);
+                String id = e.getString("name"), tag = e.isNull("etag") ? null : e.getString("etag");
                 if (tag == null) continue;
-                if (known.has(id)) {
-                    if (!tag.equals(known.optString(id))) nChanged++; // the app decides what really changed
-                    continue;
-                }
-                String kind; // new job: is it ordered or scheduled? remember the answer per eTag so job.json is read once
+                if (known.has(id)) { if (!tag.equals(known.optString(id))) nChanged++; continue; } // the app decides what really changed
+                String kind;
                 JSONObject s = seenBefore.optJSONObject(id);
-                if (s != null && tag.equals(s.optString("tag"))) kind = s.optString("kind");
+                if (e.isNull("json") && s != null && tag.equals(s.optString("tag"))) kind = s.optString("kind");
                 else {
                     String status = "";
-                    try { status = new JSONObject(MsAuth.get(GRAPH + path(root + "/" + id + "/job.json") + ":/content", tok)).optString("status", ""); }
-                    catch (org.json.JSONException e) { /* unreadable job.json: not counted */ }
+                    try { status = new JSONObject(e.optString("json", "{}")).optString("status", ""); } catch (Exception x) { /* unreadable: not counted */ }
                     kind = has(open, status.toLowerCase()) ? "new" : "other";
                 }
                 seen.put(id, new JSONObject().put("tag", tag).put("kind", kind));
                 if ("new".equals(kind)) { nNew++; newIds.put(id); }
             }
             remote.put("state", "ok").put("new", nNew).put("changed", nChanged).put("newIds", newIds).put("seen", seen);
-        } catch (MsAuth.SignInNeeded e) {
-            put(remote, "state", "signin");
-        } catch (MsAuth.HttpError e) {
-            put(remote, "state", e.code == 404 ? "nofolder" : "error");
-            keep(remote, old);
-        } catch (IOException e) {
-            put(remote, "state", "offline");
-            keep(remote, old);
+        } catch (Ms.Fail f) {
+            put(remote, "state", f.code);
+            if (!"signin".equals(f.code)) keep(remote, old);
         } catch (Exception e) {
             put(remote, "state", "error");
             keep(remote, old);
@@ -105,13 +73,6 @@ public class GaiaSyncWorker extends Worker {
         GaiaWidget.checking(c, false);
         GaiaWidget.updateAll(c);
         return Result.success(); // failures wait for the next hourly run: no retry storms on a weak signal
-    }
-
-    /** /me/drive/root:/GAIA/Jobs/… with each part encoded */
-    private static String path(String rel) {
-        StringBuilder b = new StringBuilder("/me/drive/root:");
-        for (String part : rel.split("/")) b.append('/').append(Uri.encode(part));
-        return b.toString();
     }
 
     private static boolean has(JSONArray a, String s) {

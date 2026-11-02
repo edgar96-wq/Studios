@@ -29,15 +29,18 @@ After changing Crew Studio, copy the new page in and push:
 3. GPS → Connect → pick the rover. Android asks once for "Nearby devices": allow it.
 4. The Fix tile turns FIX when the corrections arrive (the link tile shows NTRIP ✓).
 
-## OneDrive and the GAIA Today widget
-- App registration (free): platform **Mobile and desktop applications**, redirect `com.crewstudio.app://auth`,
-  Graph delegated permissions Files.ReadWrite + offline_access. Paste the client ID in Settings → OneDrive → Connect;
-  sign-in opens in the phone's browser and comes back to the app. Tokens stay in the app's private storage (no backup).
+## OneDrive (MSAL) and the GAIA Today widget
+- Sign-in: Microsoft's MSAL library, single-account mode, `app/src/main/res/raw/auth_config.json`
+  (client e5c6b607-…, authority *common*: personal and work accounts). Redirect
+  `msauth://com.crewstudio.app/q%2BJQXAeUCkn%2FI9%2BYG0TtaSLYbQA%3D` = this keystore's signature hash; a new key needs
+  a new redirect in Entra. Scopes Files.ReadWrite + User.Read (MSAL adds offline_access). Tokens stay inside MSAL's
+  private storage; the page only sees the account name.
+- `Graph.java` does every OneDrive call in Java, and refuses any path outside `GAIA/Jobs`. The page calls it through the
+  bridge: `listJobs`, `readFile`, `uploadFile` (simple PUT ≤ 4 MB, upload session above), `writeJobJson`
+  (job.json.tmp, then rename over job.json). Answers come back as the `graph` event.
 - Widget: long-press the home screen → Widgets → Crew Studio → **GAIA Today** (4×2; stretch to 4×3 for more jobs).
-  It reads only `files/today.json`, which the page writes through the bridge (`writeToday`) whenever jobs or sync change.
-- Background check (`GaiaSyncWorker`, WorkManager): about 5:30 AM daily and every 60 minutes, only on a network and only
-  while signed in; Refresh on the widget runs it at once. It counts new / changed jobs in GAIA/Jobs and writes only
-  folder names and counts into today.json → remote. Importing stays in the app.
+  It reads only `files/today.json`, written by the page (`writeToday`) and by the background check.
+- Background check (`GaiaSyncWorker`, WorkManager): about 5:30 AM and every 60 minutes, network only, only while signed in.
 
 ## Signing
 `app/crewstudio.keystore` (passwords in `gradle.properties`) signs the test builds, so every build installs as

@@ -349,7 +349,7 @@ body.phone .tab .xs{display:inline}body.phone .tab .s.rev{display:none}
    Crew Studio — field notes, GPS shots, photos and checks.
    Single file. Data stays on this device (browser storage).
    ================================================================ */
-const VERSION = '0.7.1';
+const VERSION = '0.8.0';
 const KEY = 'surveyorStudio.v1';
 const D2R = Math.PI / 180, USFT = 3937 / 1200;
 const $ = (s, r = document) => r.querySelector(s);
@@ -1562,7 +1562,7 @@ const RAILS = {
   today() {
     const url = mapsRoute(S.jobs);
     const gf = (gset().found || []).length;
-    return [ri('job-add', 'Add job', 'plus') + ri('gaia-check', U.gaiaSpin ? 'Checking…' : 'OneDrive', 'cloud', { badge: gf || '', badgeCls: 'warn', title: 'Check OneDrive GAIA/Jobs for new or changed jobs' }) + ri('wo-import', 'CSV', 'import', { title: 'Import work orders from a CSV file (fallback)' }) + (url ? ra(url, 'Route', 'route', 'Open the open jobs in Google Maps, in this order') : ri('nav-none', 'Route', 'route', { dis: true })),
+    return [ri('job-add', 'Add job', 'plus') + ri('gaia-check', U.gaiaSpin ? 'Checking…' : 'OneDrive', 'cloud', { badge: gf || '', badgeCls: 'warn', title: 'Check for new work in OneDrive GAIA/Jobs' }) + ri('wo-import', 'CSV', 'import', { title: 'Import work orders from a CSV file (fallback)' }) + (url ? ra(url, 'Route', 'route', 'Open the open jobs in Google Maps, in this order') : ri('nav-none', 'Route', 'route', { dis: true })),
     ri('backup', 'Back up', 'save') + ri('restore', 'Restore', 'import') + ri('settings', 'Settings', 'gear')];
   },
   notes() {
@@ -1753,7 +1753,8 @@ function renderToday() {
   let h = `<div class="doc"><div class="row" style="justify-content:space-between;align-items:baseline"><h2>Today · ${d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</h2><span class="muted num">${S.jobs.length} jobs · ${open} open</span></div>`;
   { const g = gset(), f = g.found || [], on = g.source === 'folder' ? !!FolderStore.root : msConnected(), pend = S.jobs.filter(x => x.gaia && x.gaia.pending).length;
     h = h.replace('<div class="doc">', '<div class="doc"><div class="pullhint" style="height:0;overflow:hidden;text-align:center;font:600 12px var(--font-data);color:var(--muted);transition:height .15s"></div>');
-    h += `<div class="sheet row" style="justify-content:space-between;gap:8px;padding:8px 12px;margin-bottom:8px"><span style="font-size:13px;display:flex;align-items:center;gap:6px;min-width:0"><span style="width:18px;height:18px;flex:0 0 18px;display:inline-flex;color:var(--plum)">${icon('cloud')}</span><span>${on ? `<b>${esc(gaiaStore().label())}</b>${g.lastCheck ? ` <span class="muted">· checked ${esc(fmtTime(g.lastCheck))}</span>` : ''}${pend ? ` <span class="chip warn">${pend} to send</span>` : ''}` : 'OneDrive not connected'}</span></span><span class="row" style="gap:6px">${f.length ? `<button class="btn small primary" data-act="gaia-review">${f.length} from OneDrive</button>` : ''}<button class="btn small" data-act="${on ? 'gaia-check' : 'gaia-setup'}">${on ? (U.gaiaSpin ? 'Checking…' : 'Check') : 'Connect'}</button></span></div>`; }
+    h += `<div class="sheet row" style="justify-content:space-between;gap:8px;padding:8px 12px;margin-bottom:8px"><span style="font-size:13px;display:flex;align-items:center;gap:6px;min-width:0"><span style="width:18px;height:18px;flex:0 0 18px;display:inline-flex;color:var(--plum)">${icon('cloud')}</span><span>${on ? `<b>${esc(gaiaStore().label())}</b>${g.lastCheck ? ` <span class="muted">· checked ${esc(fmtTime(g.lastCheck))}</span>` : ''}${U.gaiaNote === 'offline' ? ' <span class="chip warn">no signal · last copy</span>' : U.gaiaNote === 'denied' ? ' <span class="chip warn">permission refused</span>' : U.gaiaNote === 'nofolder' ? ' <span class="chip warn">no GAIA/Jobs folder</span>' : ''}${pend ? ` <span class="chip warn">${pend} to send</span>` : ''}` : NMS && g.linked ? '<b>Signed out of OneDrive</b>' : 'OneDrive not connected'}</span></span><span class="row" style="gap:6px"><button class="btn small${on ? '' : ' primary'}" data-act="${on ? 'gaia-check' : 'gaia-setup'}">${on ? (U.gaiaSpin ? 'Checking…' : 'Check for new work') : 'Connect OneDrive'}</button></span></div>`;
+    if (f.length) h += `<div class="sheet" style="padding:6px 12px;margin-bottom:8px">${f.map((x, i) => { const d = woToJob(x.rec || {}); return `<div class="row" style="justify-content:space-between;gap:8px;padding:5px 0${i ? ';border-top:1px solid var(--plum-line)' : ''}"><span style="min-width:0;font-size:13px"><b style="color:var(--plum)">${x.kind === 'new' ? 'New' : 'Changed'}: ${esc(x.id)}</b><br><span class="muted">${esc(d.address || 'no address')}${x.kind === 'changed' && x.diff ? ' · office changed ' + esc(x.diff.map(k => (WO_FIELDS.find(w => w[0] === k) || [k, k])[1]).join(', ')) : ''}</span></span><button class="btn small primary" data-act="gaia-take:${i}">${x.kind === 'new' ? 'Import' : 'Update'}</button></div>`; }).join('')}${f.length > 1 ? `<div class="row" style="justify-content:flex-end;padding-top:4px"><button class="btn small" data-act="gaia-take:all">Import / update all ${f.length}</button></div>` : ''}</div>`; }
   if (!S.jobs.length) h += `<div class="sheet"><p><b>No jobs yet.</b> Add a job from its work order, or import the day's work orders from a CSV file (columns: job, address, client, lot, block, subdivision, plat book, page, due).</p></div>`;
   h += '<div class="cards">';
   S.jobs.forEach((j, i) => {
@@ -1777,7 +1778,7 @@ function renderJob() {
   const dis = j.status === 'closed' ? ' disabled' : '';
   const [st, cls] = STAT[j.status];
   let h = `<div class="doc"><div class="row" style="justify-content:space-between;align-items:baseline"><h2>${esc(j.no)} <span class="chip ${cls}" style="vertical-align:4px">${st}${j.revision ? ' · revision ' + j.revision : ''}</span></h2><span class="muted num">Started ${fmtTime(j.startedAt)} · Closed ${fmtTime(j.closedAt)}</span></div>`;
-  h += `<section class="sheet"><h3>Work order</h3><div class="grid2">${WO_FIELDS.map(([k, l]) => `<label class="field">${l}<input data-wo="${k}" value="${esc(j[k])}"${dis}></label>`).join('')}</div></section>`;
+  h += `<section class="sheet"><h3>Work order</h3><div class="grid2">${WO_FIELDS.map(([k, l]) => `<label class="field">${l}<input data-wo="${k}" value="${esc(j[k])}"${dis}></label>`).join('')}</div>${j.access ? `<p style="font-size:13px;margin:8px 0 0"><b>Access:</b> ${esc(j.access)} <span class="muted" style="font-size:12px">· from job.json; stays on this phone, never exported</span></p>` : ''}</section>`;
   h += `<section class="sheet"><h3>Corners · found first, by hand</h3><div class="scroll-x"><table class="tbl" style="min-width:720px"><thead><tr><th>Corner</th><th>Status</th><th>Type</th><th>Size</th><th>Cap / I.D.</th><th>Condition</th><th>Shot</th></tr></thead><tbody>`;
   j.corners.forEach((c, i) => {
     h += `<tr><td><b>${esc(c.key)}</b></td><td><select data-cn="${i}:status"${dis}>${[['', '—'], ['found', 'Found'], ['notfound', 'Not found'], ['set', 'Set (new)']].map(([v, l]) => `<option value="${v}"${c.status === v ? ' selected' : ''}>${l}</option>`).join('')}</select></td>
@@ -4207,6 +4208,7 @@ function settingsDialog() {
   modal({
     title: 'Settings', wide: true,
     body: h3('Field rule F3 · tape vs GPS') + `<div class="grid2">${field("Illogical difference, ft", 'sIll', s.illFt, 'inputmode="decimal"')}${field('… or % of the line', 'sPct', s.illPct, 'inputmode="decimal"')}${field('Max HRMS for a corner shot, ft', 'sH', s.hrmsMax, 'inputmode="decimal"')}${field('Short piece (tape governs) under, ft', 'sShort', s.shortMax, 'inputmode="decimal"')}</div>`
+      + h3('OneDrive') + (() => { const g = gset(), on = gset().source === 'folder' ? !!FolderStore.root : msConnected(), acct = NMS && NATIVE.msAccount ? NATIVE.msAccount() : (MS.tok && MS.tok.account) || ''; return `<div class="sheet row" style="justify-content:space-between;gap:10px;padding:8px 12px"><span style="font-size:13.5px;min-width:0">${on ? `Connected: <b>${esc(g.source === 'folder' && FolderStore.root ? FolderStore.root.name : acct || 'Microsoft account')}</b>` : NMS && g.linked ? '<b>Signed out</b>' : 'Not connected'}<br><span class="muted">Last sync: ${g.lastCheck ? esc(fmtTime(g.lastCheck)) : 'never'}</span></span><span class="row" style="gap:6px"><button class="btn small${on ? '' : ' primary'}" type="button" id="sOd">${on ? (NMS ? 'Disconnect' : 'OneDrive…') : 'Connect OneDrive'}</button></span></div>`; })()
       + (NATIVE ? h3('Saving exports') + `<div class="grid2">${selectField('Save files to', 'sSave', [['ask', 'Ask each time'], ['pick', 'OneDrive / choose each time'], ...(s.saveFolder ? [['folder', s.saveFolder]] : []), ['phone', 'This phone (Downloads › Crew Studio)']], s.saveTo || 'ask')}<div class="field" style="justify-content:flex-end"><button class="btn" type="button" id="sFolder">${s.saveFolder ? 'Change folder…' : 'Pick a folder once…'}</button></div></div><p class="muted" style="font-size:12.5px;margin:0">Pick your OneDrive job folder once and every export lands there. If OneDrive doesn't appear in the folder list, use "OneDrive / choose each time".</p>` : '')
       + (NATIVE ? h3('Home-screen widget · GAIA Today') + `<div class="grid2">${field('Ledger Studio package name', 'sLedger', s.ledgerPkg || '', 'placeholder="e.g. com.ledgerstudio.app" autocomplete="off" spellcheck="false"')}</div><p class="muted" style="font-size:12.5px;margin:0">The widget's Ledger button opens this app. Long-press the home screen → Widgets → Crew Studio to add GAIA Today.</p>` : '')
       + `<p class="muted" style="font-size:12.5px">Rover, corrections, coordinate system and staking are in <b>Rover setup</b> (GPS tab). These apply to every job on this device. Crew Studio ${VERSION}.</p>`,
@@ -4218,7 +4220,10 @@ function settingsDialog() {
         Object.assign(S.settings, vals); if (NATIVE && $('#sSave', r)) S.settings.saveTo = $('#sSave', r).value; if ($('#sLedger', r)) S.settings.ledgerPkg = $('#sLedger', r).value.trim(); save(); render();
       },
     }],
-    onMount: r => { const b = $('#sFolder', r); if (b) b.onclick = () => NATIVE.pickFolder(); },
+    onMount: r => {
+      const b = $('#sFolder', r); if (b) b.onclick = () => NATIVE.pickFolder();
+      $('#sOd', r).onclick = () => { const on = msConnected(); closeModal(); if (NMS && gset().source !== 'folder') { if (on) NATIVE.msSignOut(); else { gset().source = 'graph'; save(); msSignIn(false); } } else setTimeout(gaiaSetup, 30); };
+    },
   });
 }
 /* deliverables the crew keeps; the fieldbook .json and the points .csv travel only inside the .zip (Survey Studio reads them) */
@@ -4253,7 +4258,7 @@ function exportDialog() {
   const grp = g => `<h3 style="margin:6px 0 0;font:600 11px var(--font-data);letter-spacing:.1em;text-transform:uppercase;color:var(--gold-ink)">${g}</h3>` + files.map((f, i) => f.grp === g ? row(f, i) : '').join('');
   modal({
     title: `Export ${j.no}`, wide: true,
-    body: ((j.gaia || gset().clientId || gset().source === 'folder') ? `<div class="filerow"><div><div class="nm">OneDrive · ${esc(GAIA_ROOT)}/${esc(j.gaia ? j.gaia.id : j.no)}/field/</div><div class="ds">Points .txt, field DXF, field notes (JPEG + PDF), plat, photos and the fieldbook; job.json → field and a log line.${j.gaia && j.gaia.sent ? ' Last sent ' + esc(fmtTime(j.gaia.sent)) + '.' : j.gaia && j.gaia.pending ? ' Waiting to send.' : ''}</div></div><div class="row"><button class="btn small primary" data-gaia="1">Send</button></div></div>` : '') + `<div class="filerow"><div><div class="nm">${esc(base)}-field.zip</div><div class="ds">All of it in one file, with the photos and the data Survey Studio reads. Use this one for the office.</div></div><div class="row"><button class="btn small primary" data-zip="1">Save</button></div></div>` + grp('Field notes') + grp('GPS'),
+    body: ((j.gaia || gaiaConfigured()) ? `<div class="filerow"><div><div class="nm">OneDrive · ${esc(GAIA_ROOT)}/${esc(j.gaia ? j.gaia.id : j.no)}/field/</div><div class="ds">Points .txt, field DXF, field notes (JPEG + PDF), plat, photos and the fieldbook; job.json → field and a log line.${j.gaia && j.gaia.sent ? ' Last sent ' + esc(fmtTime(j.gaia.sent)) + '.' : j.gaia && j.gaia.pending ? ' Waiting to send.' : ''}</div></div><div class="row"><button class="btn small primary" data-gaia="1">Send</button></div></div>` : '') + `<div class="filerow"><div><div class="nm">${esc(base)}-field.zip</div><div class="ds">All of it in one file, with the photos and the data Survey Studio reads. Use this one for the office.</div></div><div class="row"><button class="btn small primary" data-zip="1">Save</button></div></div>` + grp('Field notes') + grp('GPS'),
     onMount: r => {
       $('[data-zip]', r).onclick = () => doExportZip();
       const gb = $('[data-gaia]', r); if (gb) gb.onclick = () => gaiaUpload(j);
@@ -4513,6 +4518,7 @@ const MS = {
   set tok(v) { try { if (v) localStorage.setItem('crew.ms', JSON.stringify(v)); else localStorage.removeItem('crew.ms'); } catch (e) { } },
 };
 async function msSignIn(silent) {
+  if (NMS) { if (navigator.onLine === false) return toast(GAIA_MSG.offline, 'warn', 5000); U.msBusy = true; render(); NATIVE.msSignIn(''); return; } // MSAL on the phone: Microsoft's page opens once
   const cid = gset().clientId.trim(); if (!cid) { gaiaSetup(); return; }
   if (NATIVE && NATIVE.msSignIn) { NATIVE.msSignIn(cid); return; }
   if (!MS.canWeb()) return modal({ title: 'Connect OneDrive', body: `<p>Microsoft sign-in can't run here${inClaude() ? ' (inside Claude the page has no address Microsoft can return to)' : location.protocol === 'file:' ? ' (a file opened from the computer has no web address Microsoft can return to)' : ''}.</p><p>Sign in from the <b>Crew Studio app on the phone</b>. On a Windows computer you can instead use the synced OneDrive folder: Settings → OneDrive → <i>Use the GAIA/Jobs folder on this computer</i>.</p>`, actions: [{ label: 'Close' }] });
@@ -4552,8 +4558,24 @@ async function msAccess() {
 }
 const msWaits = [];
 NATIVE_EV.mstoken = d => { const w = msWaits.splice(0); if (d.access) { MS.tok = { access: d.access, exp: Date.now() + (d.expires || 3000) * 1000, account: d.account || (MS.tok && MS.tok.account) }; w.forEach(x => x.res(d.access)); } else { const e = new Error(d.error || 'signin'); e.signin = !d.error || d.error === 'signin'; w.forEach(x => x.rej(e)); } };
-NATIVE_EV.ms = d => { if (d.ok) { MS.tok = { access: d.access, exp: Date.now() + (d.expires || 3000) * 1000, account: d.account || '' }; gset().source = 'graph'; save(); toast('OneDrive connected.', 'good'); gaiaCheck(); } else if (!d.cancelled) toast('OneDrive: ' + (d.error || 'sign-in failed'), 'warn', 6000); };
+NATIVE_EV.ms = d => {
+  U.msBusy = false; const g = gset();
+  if (d.ok) { if (!NMS) MS.tok = { access: d.access, exp: Date.now() + (d.expires || 3000) * 1000, account: d.account || '' }; g.source = 'graph'; g.linked = true; save(); toast(`OneDrive connected${d.account ? ': ' + d.account : ''}.`, 'good', 3500); gaiaCheck(); }
+  else if (d.signedOut) { g.linked = false; g.found = []; save(); toast('OneDrive disconnected on this phone. Your jobs stay here.', 'info', 4000); }
+  else if (d.cancelled) toast('Sign-in cancelled. OneDrive is not connected.', 'info', 3500);
+  else toast(gaiaErr(d), 'warn', 7000);
+  render(); if (modalOpen && U.gaiaSetupOpen) { closeModal(); setTimeout(gaiaSetup, 30); }
+};
+const NMS = !!(NATIVE && NATIVE.listJobs); // the phone app: MSAL sign-in and Graph calls in Java (tokens never reach the page)
 const msConnected = () => NATIVE && NATIVE.msSignedIn ? !!NATIVE.msSignedIn() : !!(MS.tok && (MS.tok.refresh || (MS.tok.access && MS.tok.exp > Date.now())));
+const GAIA_MSG = {
+  offline: 'No signal: you are working on the last copy of your jobs. OneDrive is checked again when there is a connection.',
+  signin: 'Signed out of OneDrive: Settings → OneDrive → Connect, then sign in again.',
+  denied: 'OneDrive refused permission: Settings → OneDrive → Connect and accept "Files.ReadWrite" (read and write your files).',
+  nofolder: 'There is no GAIA/Jobs folder in this OneDrive. Check that you signed in with the account that holds GAIA.',
+  throttled: 'OneDrive is busy right now; try again in a minute.',
+};
+const gaiaErr = e => GAIA_MSG[e.code] || (e.signin ? GAIA_MSG.signin : 'OneDrive: ' + (e.msg || e.error || e.message || 'something went wrong'));
 const GRAPH = 'https://graph.microsoft.com/v1.0', gpath = rel => '/me/drive/root:/' + (GAIA_ROOT + (rel ? '/' + rel : '')).split('/').map(encodeURIComponent).join('/');
 async function gfetch(url, opt = {}, again) {
   const tk = await msAccess();
@@ -4610,18 +4632,43 @@ const FolderStore = { // OneDrive synced folder opened in Chrome/Edge (File Syst
     try { await d.removeEntry(parts.at(-1)); } catch (e) { }
   },
 };
-function gaiaStore() { if (window.__gaiaStore) return window.__gaiaStore; return gset().source === 'folder' ? FolderStore : GraphStore; }
+/* ---- the phone app: every OneDrive call runs in Java (MSAL + Graph), GAIA/Jobs only; answers come back as "graph" events ---- */
+const nWaits = new Map(); let nSeq = 0;
+function ncall(fn, ...args) {
+  return new Promise((res, rej) => { const id = 'q' + (++nSeq); nWaits.set(id, { res, rej }); try { NATIVE[fn](id, ...args); } catch (e) { nWaits.delete(id); rej(e); } });
+}
+NATIVE_EV.graph = d => { const w = nWaits.get(d.req); if (!w) return; nWaits.delete(d.req); if (d.ok) w.res(d.data); else { const e = new Error(gaiaErr(d)); e.code = d.code; e.signin = d.code === 'signin'; w.rej(e); } };
+async function nstage(blob) { // a file to the app's cache in pieces; uploadFile then sends it
+  const id = NATIVE.stageBegin(); if (!id) throw new Error('the phone has no room for the upload');
+  const bytes = new Uint8Array(await blob.arrayBuffer()), CH = 393216;
+  for (let i = 0; i < bytes.length; i += CH) { const part = bytes.subarray(i, i + CH); let bin = ''; for (let k = 0; k < part.length; k += 8192) bin += String.fromCharCode.apply(null, part.subarray(k, k + 8192)); if (!NATIVE.stageChunk(id, btoa(bin))) throw new Error('the phone could not keep the upload'); }
+  NATIVE.stageEnd(id); return id;
+}
+const NativeStore = {
+  kind: 'native', label: () => 'OneDrive' + (NATIVE.msAccount && NATIVE.msAccount() ? ' · ' + NATIVE.msAccount() : ''), got: new Map(),
+  async jobs() { // job.json comes along only for jobs whose eTag the phone doesn't have yet
+    const known = {}; for (const j of S.jobs) if (j.gaia && j.gaia.id && j.gaia.etag) known[j.gaia.id] = j.gaia.etag; for (const f of gset().found || []) if (f.rec) known[f.id] = f.etag;
+    const list = await ncall('listJobs', JSON.stringify(known)), t = Date.now(); this.got.clear();
+    for (const x of list) if (x.json != null) this.got.set(x.name, { t, json: x.json });
+    return list.map(x => ({ name: x.name, etag: x.etag }));
+  },
+  async read(rel) { const m = /^([^/]+)\/job\.json$/.exec(rel), c = m && this.got.get(m[1]); if (c) { this.got.delete(m[1]); if (Date.now() - c.t < 60000) return c.json; } return ncall('readFile', GAIA_ROOT + '/' + rel); },
+  async write(rel, blob) { const id = await nstage(blob); return ncall('uploadFile', id, GAIA_ROOT + '/' + rel, blob.type || 'application/octet-stream'); },
+  async writeJob(id, text) { return ncall('writeJobJson', id, text); }, // job.json.tmp, then renamed over job.json
+};
+const gaiaConfigured = () => gset().source === 'folder' || (NMS ? msConnected() : !!gset().clientId);
+function gaiaStore() { if (window.__gaiaStore) return window.__gaiaStore; return gset().source === 'folder' ? FolderStore : NMS ? NativeStore : GraphStore; }
 async function gaiaReady(ask) {
   const st = gaiaStore(); if (st === window.__gaiaStore) return st;
   if (st.kind === 'folder') return (await FolderStore.ready(ask)) ? st : null;
-  if (!gset().clientId || !msConnected()) return null; return st;
+  if ((!NMS && !gset().clientId) || !msConnected()) return null; return st;
 }
 
 /* ---- job.json → Crew Studio job ---- */
 function woToJob(rec) {
   const w = rec.wo || {}, acc = (w.access || []).map(a => [a.role, a.name, a.phone].filter(Boolean).join(' ')).filter(Boolean);
-  const notes = [w.crew_notes, w.type && w.type !== 'boundary' ? 'Type: ' + w.type : '', w.flood_zone ? 'Flood zone ' + w.flood_zone + (w.bfe ? ' · BFE ' + w.bfe : '') : '', acc.length ? 'Access: ' + acc.join('; ') : '', w.confidence === 'check' ? 'WO has fields to check.' : ''].filter(Boolean).join('\n');
-  return { no: String(rec.job_id || w.survey_no || ''), address: w.address || '', client: rec.company || '', lot: w.lot || '', block: w.block || '', subdivision: w.subdivision || '', platBook: w.plat_book || '', page: w.page || '', due: w.due || '', notes };
+  const notes = [w.crew_notes, w.type && w.type !== 'boundary' ? 'Type: ' + w.type : '', w.flood_zone ? 'Flood zone ' + w.flood_zone + (w.bfe ? ' · BFE ' + w.bfe : '') : '', w.confidence === 'check' ? 'WO has fields to check.' : ''].filter(Boolean).join('\n');
+  return { no: String(rec.job_id || w.survey_no || ''), address: w.address || '', client: rec.company || '', lot: w.lot || '', block: w.block || '', subdivision: w.subdivision || '', platBook: w.plat_book || '', page: w.page || '', due: w.due || '', notes, access: acc.join('; ') }; // access contacts: on this phone only, never in notes or exports (spec §5)
 }
 const parseJob = txt => { try { const r = JSON.parse(txt); return r && typeof r === 'object' ? r : null; } catch (e) { return null; } };
 /** Bring OneDrive's WO data into a job without losing what the crew typed: a field only takes the new value if the crew
@@ -4637,7 +4684,7 @@ let gaiaBusy = false;
 async function gaiaCheck(o = {}) { // o.silent: on app open / pull-to-refresh with nothing to say
   if (gaiaBusy) return; const st = await gaiaReady(!o.silent).catch(() => null);
   if (!st) { if (!o.silent) gaiaSetup(); return; }
-  if (navigator.onLine === false && st.kind === 'graph') { if (!o.silent) toast('Offline: the jobs you have keep working; OneDrive is checked when there is a connection.', 'info', 4500); return; }
+  if (navigator.onLine === false && st.kind !== 'folder') { if (!o.silent) toast(GAIA_MSG.offline, 'info', 5000); U.gaiaNote = 'offline'; return; }
   gaiaBusy = true; U.gaiaSpin = true; if (U.tab === 'today') renderToday();
   try {
     const list = await st.jobs(), found = [];
@@ -4650,16 +4697,16 @@ async function gaiaCheck(o = {}) { // o.silent: on app open / pull-to-refresh wi
       if (!loc) { if (GAIA_OPEN.includes(String(rec.status || '').toLowerCase())) found.push({ id: f.name, etag: f.etag, kind: 'new', rec, d }); continue; }
       const base = loc.gaia && loc.gaia.base; // only what the office changed since the last import counts; the crew's own edits never do
       const diff = WO_KEYS.filter(k => (d[k] || '') !== (loc[k] || '') && (!base || (d[k] || '') !== (base[k] || '')));
-      if (!diff.length) { loc.gaia = Object.assign(loc.gaia || {}, { id: f.name, etag: f.etag, status: rec.status || '' }); if (!base) loc.gaia.base = Object.assign({}, d); continue; }
+      if (!diff.length) { loc.gaia = Object.assign(loc.gaia || {}, { id: f.name, etag: f.etag, status: rec.status || '' }); loc.access = d.access; if (!base) { loc.gaia.base = Object.assign({}, d); delete loc.gaia.base.access; } continue; }
       found.push({ id: f.name, etag: f.etag, kind: 'changed', rec, d, diff, job: loc.id });
     }
     const trim = r => { const w = r.wo || {}; return { job_id: r.job_id, company: r.company, status: r.status, wo: { survey_no: w.survey_no, address: w.address, lot: w.lot, block: w.block, subdivision: w.subdivision, plat_book: w.plat_book, page: w.page, due: w.due, type: w.type, flood_zone: w.flood_zone, bfe: w.bfe, crew_notes: w.crew_notes, access: w.access, confidence: w.confidence } }; };
     gset().found = found.map(x => ({ id: x.id, etag: x.etag, kind: x.kind, rec: trim(x.rec), diff: x.diff, job: x.job })); // no buyer/seller copies
-    gset().lastCheck = isoLocal(); save();
+    gset().lastCheck = isoLocal(); U.gaiaNote = null; save();
     await gaiaFlushUploads(st);
-    if (found.length) { if (o.silent) toast(`${found.length} job${found.length > 1 ? 's' : ''} ${found.every(x => x.kind === 'new') ? 'new' : 'new or changed'} in OneDrive.`, 'info', 5000); else gaiaReview(); }
+    if (found.length) { toast(`${found.length} job${found.length > 1 ? 's' : ''} ${found.every(x => x.kind === 'new') ? 'new' : 'new or changed'} in OneDrive — on Today, tap Import.`, 'info', 5000); if (!o.silent && U.tab !== 'today') switchTab('today'); }
     else if (!o.silent) toast('No new jobs in ' + GAIA_ROOT + '.', 'good', 2500);
-  } catch (e) { if (e.signin) { if (!o.silent) toast('OneDrive: sign in again (Settings → OneDrive → Connect).', 'warn', 6000); else if (MS.canWeb() && !sessionStorage.getItem('crew.silent')) { try { sessionStorage.setItem('crew.silent', '1'); } catch (x) { } msSignIn(true); } } else if (!o.silent) toast('OneDrive: ' + e.message, 'warn', 7000); }
+  } catch (e) { U.gaiaNote = e.code || (e.signin ? 'signin' : 'error'); if (e.code && e.code !== 'signin') { if (!o.silent || e.code !== 'offline') toast(gaiaErr(e), 'warn', 7000); } else if (e.signin) { if (!o.silent || NMS) toast(GAIA_MSG.signin, 'warn', 7000); else if (MS.canWeb() && !sessionStorage.getItem('crew.silent')) { try { sessionStorage.setItem('crew.silent', '1'); } catch (x) { } msSignIn(true); } } else if (!o.silent) toast('OneDrive: ' + e.message, 'warn', 7000); }
   finally { gaiaBusy = false; U.gaiaSpin = false; renderRails(); if (U.tab === 'today') renderToday(); writeToday(); }
 }
 function gaiaReview() {
@@ -4676,9 +4723,9 @@ function gaiaReview() {
 function gaiaTake(items) {
   let n = 0, kept = [];
   for (const x of items) {
-    const d = woToJob(x.rec); d.no = d.no || x.id;
-    if (x.kind === 'new' && !gaiaJobOf(x.id)) { const j = newJob(d); j.gaia = { id: x.id, etag: x.etag, status: x.rec.status || '', base: Object.assign({}, d) }; j.log = [{ t: nowISO(), m: `Imported from OneDrive ${GAIA_ROOT}/${x.id} (status ${x.rec.status || '—'})` }]; S.jobs.push(j); n++; }
-    else { const j = gaiaJobOf(x.id); if (!j) continue; const m = gaiaMerge(j, d, x.rec, x.etag); logJ(j, `Work order updated from OneDrive${m.took.length ? ': ' + m.took.join(', ') : ''}${m.kept.length ? ' · kept yours: ' + m.kept.join(', ') : ''}`); if (m.kept.length) kept.push(`${x.id}: ${m.kept.join(', ')}`); n++; }
+    const d = woToJob(x.rec); d.no = d.no || x.id; const access = d.access; delete d.access;
+    if (x.kind === 'new' && !gaiaJobOf(x.id)) { const j = newJob(d); j.access = access; j.gaia = { id: x.id, etag: x.etag, status: x.rec.status || '', base: Object.assign({}, d) }; j.log = [{ t: nowISO(), m: `Imported from OneDrive ${GAIA_ROOT}/${x.id} (status ${x.rec.status || '—'})` }]; S.jobs.push(j); n++; }
+    else { const j = gaiaJobOf(x.id); if (!j) continue; const m = gaiaMerge(j, d, x.rec, x.etag); j.access = access; logJ(j, `Work order updated from OneDrive${m.took.length ? ': ' + m.took.join(', ') : ''}${m.kept.length ? ' · kept yours: ' + m.kept.join(', ') : ''}`); if (m.kept.length) kept.push(`${x.id}: ${m.kept.join(', ')}`); n++; }
     gset().found = (gset().found || []).filter(y => y.id !== x.id);
   }
   if (!S.activeJobId && S.jobs[0]) S.activeJobId = S.jobs[0].id;
@@ -4699,7 +4746,7 @@ async function gaiaFiles(j) {
 }
 async function gaiaUpload(j, o = {}) {
   const st = await gaiaReady(!o.quiet).catch(() => null), id = j.gaia ? j.gaia.id : j.no;
-  if (!st || (st.kind === 'graph' && navigator.onLine === false)) { j.gaia = Object.assign(j.gaia || { id }, { pending: true }); save(); if (!o.quiet) toast(st ? 'Offline: the field files go up to OneDrive as soon as there is a connection.' : 'OneDrive isn\'t connected: the upload waits (Settings → OneDrive).', 'info', 6000); return false; }
+  if (!st || (st.kind !== 'folder' && navigator.onLine === false)) { j.gaia = Object.assign(j.gaia || { id }, { pending: true }); save(); if (!o.quiet) toast(st ? 'Offline: the field files go up to OneDrive as soon as there is a connection.' : 'OneDrive isn\'t connected: the upload waits (Settings → OneDrive).', 'info', 6000); return false; }
   const cur = await st.read(id + '/job.json'); if (cur == null) { if (!o.quiet) toast(`OneDrive has no ${GAIA_ROOT}/${id}/job.json — files not sent. Check the job number.`, 'warn', 7000); return false; }
   if (!parseJob(cur)) { if (!o.quiet) toast(`${id}/job.json can't be read (being written?). Try again in a moment.`, 'warn', 6000); return false; }
   toast(`Sending ${id} to OneDrive…`, 'info', 3000);
@@ -4710,16 +4757,17 @@ async function gaiaUpload(j, o = {}) {
     const crew = gset().crew || 'crew', date = dayLocal(j.closedAt || j.startedAt || Date.now()), files = out.map(f => f.rel);
     fresh.field = Object.assign({}, fresh.field || {}, { crew, date, done: true, points_file: `field/${id}.txt`, dxf: `field/${id}-field.dxf`, files });
     fresh.log = (Array.isArray(fresh.log) ? fresh.log : []).concat([{ at: isoLocal(), by: 'crew-studio', did: `field done by ${crew} on ${date}: ${files.length} files in field/` }]);
-    const tid = await st.write(id + '/job.json.tmp', new Blob([JSON.stringify(fresh, null, 2)], { type: 'application/json' }));
-    await st.replace(id + '/job.json.tmp', tid, 'job.json');
+    if (st.writeJob) await st.writeJob(id, JSON.stringify(fresh, null, 2)); // native: tmp + rename in one call
+    else { const tid = await st.write(id + '/job.json.tmp', new Blob([JSON.stringify(fresh, null, 2)], { type: 'application/json' })); await st.replace(id + '/job.json.tmp', tid, 'job.json'); }
     j.gaia = Object.assign(j.gaia || { id }, { pending: false, sent: isoLocal() }); logJ(j, `Sent to OneDrive ${GAIA_ROOT}/${id}/field (${files.length} files); job.json → field updated`); save(); render();
     toast(`${id} sent to OneDrive: ${files.length} files.`, 'good', 4000); return true;
-  } catch (e) { j.gaia = Object.assign(j.gaia || { id }, { pending: true }); save(); if (!o.quiet) toast('OneDrive upload stopped: ' + (e.signin ? 'sign in again' : e.message) + '. It retries on the next check.', 'warn', 7000); return false; }
+  } catch (e) { j.gaia = Object.assign(j.gaia || { id }, { pending: true }); save(); if (!o.quiet) toast((e.code ? gaiaErr(e) : 'OneDrive upload stopped: ' + (e.signin ? 'sign in again' : e.message)) + ' The field files wait on this phone and go up on the next check.', 'warn', 8000); return false; }
 }
 async function gaiaFlushUploads() { for (const j of S.jobs) if (j.gaia && j.gaia.pending && j.status === 'closed') await gaiaUpload(j, { quiet: true }); }
 
 /* ---- settings + free app registration guide ---- */
 function gaiaSetup() {
+  if (NMS && gset().source !== 'folder') return gaiaSetupPhone();
   const g = gset(), t = MS.tok, fsa = 'showDirectoryPicker' in window && !inClaude();
   modal({
     title: 'OneDrive · GAIA/Jobs', wide: true,
@@ -4735,6 +4783,24 @@ function gaiaSetup() {
     onMount: r => { $('#gGuide', r).onclick = () => { gRead(r); save(); setTimeout(gaiaGuide, 30); }; },
   });
   function gRead(r) { g.clientId = $('#gCid', r).value.trim(); g.crew = $('#gCrew', r).value.trim(); g.auto = $('#gAuto', r).checked; }
+}
+/** the phone app: MSAL sign-in, nothing to paste */
+function gaiaSetupPhone() {
+  const g = gset(), on = msConnected(), acct = NATIVE.msAccount ? NATIVE.msAccount() : '';
+  U.gaiaSetupOpen = true;
+  modal({
+    title: 'OneDrive · GAIA/Jobs', wide: true, onClose: () => { U.gaiaSetupOpen = false; },
+    body: `<p class="muted" style="font-size:12.5px;margin:0">Crew Studio reads <b>${esc(GAIA_ROOT)}/&lt;job&gt;/job.json</b>, shows new work as <b>New: B-…</b>, and when you finish a job sends the field files to <b>&lt;job&gt;/field/</b> and fills in job.json → field. It never opens any other OneDrive folder.</p>
+      <div class="sheet" style="margin-top:8px;padding:8px 12px;font-size:13.5px">${on ? `Connected: <b>${esc(acct || 'Microsoft account')}</b>` : g.linked ? '<b>Signed out</b> — connect again to keep syncing.' : 'Not connected.'}<br><span class="muted">Last sync: ${g.lastCheck ? esc(fmtTime(g.lastCheck)) : 'never'}${U.gaiaNote === 'offline' ? ' · no signal' : ''}</span></div>
+      <div class="grid2" style="margin-top:8px">${field('Crew name (written in job.json → field)', 'gCrew', g.crew, 'placeholder="Edgar"')}</div>
+      <label class="chk"><input type="checkbox" id="gAuto"${g.auto ? ' checked' : ''}> Check for new work when the app opens</label>
+      <p class="muted" style="font-size:12.5px;margin:6px 0 0">Sign in once with the Microsoft account that holds your OneDrive (personal or work). After that the app renews the sign-in by itself. The sign-in stays on this phone; it's never in exports or backups.</p>`,
+    actions: [{ label: 'Close', onClick: r => gRead(r) },
+      ...(on ? [{ label: 'Disconnect', onClick: r => { gRead(r); save(); NATIVE.msSignOut(); } }] : []),
+      ...(on ? [{ label: 'Check for new work', kind: 'primary', onClick: r => { gRead(r); save(); setTimeout(() => gaiaCheck(), 30); } }]
+        : [{ label: U.msBusy ? 'Opening Microsoft…' : 'Connect OneDrive', kind: 'primary', onClick: r => { gRead(r); g.source = 'graph'; save(); msSignIn(false); return false; } }])],
+  });
+  function gRead(r) { g.crew = $('#gCrew', r).value.trim(); g.auto = $('#gAuto', r).checked; save(); }
 }
 function gaiaGuide() {
   const web = MS.canWeb(), rd = web ? MS.redirect() : '';
@@ -4765,7 +4831,7 @@ let todayT = 0, todaySent = '';
 function todayData() {
   const g = gset(), open = S.jobs.filter(j => j.status !== 'closed');
   const on = g.source === 'folder' ? !!FolderStore.root : msConnected();
-  const state = !on ? (g.clientId || g.source === 'folder' ? 'signin' : 'off') : navigator.onLine === false ? 'offline' : 'ok';
+  const state = !on ? ((NMS ? g.linked : g.clientId) || g.source === 'folder' ? 'signin' : 'off') : navigator.onLine === false ? 'offline' : 'ok';
   const known = {}; for (const j of S.jobs) if (j.gaia && j.gaia.id) known[j.gaia.id] = j.gaia.etag || ''; for (const f of g.found || []) known[f.id] = f.etag || '';
   return { // job no., address, due and status only: no client, buyer, seller or phone numbers, and never a token
     v: 1, app: VERSION, day: dayLocal(),
@@ -4773,7 +4839,7 @@ function todayData() {
     count: open.length,
     jobs: open.slice(0, 12).map(j => ({ id: j.id, no: j.no || '', address: j.address || '', due: j.due || '', status: j.status })),
     route: mapsRoute(S.jobs), ledger: (S.settings.ledgerPkg || '').trim(),
-    gaia: { clientId: g.source === 'graph' ? g.clientId.trim() : '', root: GAIA_ROOT, open: GAIA_OPEN, known },
+    gaia: { root: GAIA_ROOT, open: GAIA_OPEN, known },
   };
 }
 function writeToday(now) {
@@ -4799,7 +4865,7 @@ NATIVE_EV.open = d => { if (d.job) crewOpenJob(d.job); else if (d.what === 'ledg
 NATIVE_EV.resume = () => { // back to the front: pick up what the background check saw, refresh if it's been a while
   const r = readToday(), g = gset(), last = g.lastCheck ? Date.parse(g.lastCheck) : 0;
   if (r && r.checked && Date.parse(r.checked) > last && r.new > 0) gaiaCheck({ silent: true });
-  else if (g.auto && (g.source === 'folder' || g.clientId) && Date.now() - last > 15 * 60000) gaiaCheck({ silent: true });
+  else if (g.auto && gaiaConfigured() && Date.now() - last > 15 * 60000) gaiaCheck({ silent: true });
   writeToday(true);
 };
 window.addEventListener('offline', () => writeToday()); window.addEventListener('online', () => writeToday());
@@ -4953,7 +5019,7 @@ function rotatePlat() {
 /* ---------------- backup / restore ---------------- */
 async function backup() {
   try {
-    const files = [{ name: 'crew-studio-state.json', data: JSON.stringify(S, (k, v) => k === 'pass' ? undefined : v) }];
+    const files = [{ name: 'crew-studio-state.json', data: JSON.stringify(S, (k, v) => k === 'pass' || k === 'access' ? undefined : v) }];
     for (const j of S.jobs) for (const ph of j.photos) { const b = await PDB.get(j.id + '/' + ph.id); if (b) files.push({ name: `photos/${j.id}/${ph.id}.jpg`, data: b }); }
     const z = await makeZip(files);
     await saveFile(`crew-studio-backup-${new Date().toISOString().slice(0, 10)}.zip`, z, 'application/zip');
@@ -5058,9 +5124,10 @@ function onAct(act) {
     case 'reopen': return reopenJob();
     case 'start-job': return j && startJob(j);
     case 'export': return exportDialog();
-    case 'gaia-check': return (gset().source === 'folder' || gset().clientId) ? gaiaCheck() : gaiaSetup();
+    case 'gaia-check': return gaiaConfigured() ? gaiaCheck() : gaiaSetup();
     case 'gaia-review': return gaiaReview();
     case 'gaia-setup': return gaiaSetup();
+    case 'gaia-take': { const f = gset().found || []; return gaiaTake(arg === 'all' ? f.slice() : f[+arg] ? [f[+arg]] : []); }
     case 'export-zip': return doExportZip();
     case 'corner-add': { if (!editable(j)) return; return modal({ title: 'Add corner', body: field('Name', 'cnNew', '', 'placeholder="PC, PT, P.I., N1…"'), actions: [{ label: 'Cancel' }, { label: 'Add', kind: 'primary', onClick: r => { const n = $('#cnNew', r).value.trim().toUpperCase(); if (!n) return false; cornerRec(j, n); logJ(j, `Corner ${n} added`); save(); render(); } }] }); }
     case 'rover': return roverToggle();
@@ -5224,7 +5291,7 @@ function seed() {
   gaiaPull($('#vToday'));
   writeToday(true);
   if (NATIVE && NATIVE.startIntent) { try { const si = JSON.parse(NATIVE.startIntent() || 'null'); if (si) setTimeout(() => NATIVE_EV.open(si), 80); } catch (e) { } }
-  (async () => { try { await msHandleRedirect(); if (gset().auto && (gset().source === 'folder' || gset().clientId)) gaiaCheck({ silent: true }); } catch (e) { console.error(e); } })();
+  (async () => { try { await msHandleRedirect(); if (gset().auto && gaiaConfigured()) gaiaCheck({ silent: true }); } catch (e) { console.error(e); } })();
   window.addEventListener('online', () => { if (S.jobs.some(x => x.gaia && x.gaia.pending)) gaiaCheck({ silent: true }); });
   window.addEventListener('beforeunload', () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { } });
 })();

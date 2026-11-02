@@ -111,7 +111,6 @@ public class MainActivity extends Activity {
         web.addJavascriptInterface(new Bridge(), "CrewNative");
         if (state != null) web.restoreState(state); else web.loadUrl(HOME);
         startJson = fromIntent(getIntent());
-        if (MsAuth.isRedirect(getIntent())) MsAuth.finish(this, getIntent().getData());
         GaiaSync.schedule(this);
 
         if (Build.VERSION.SDK_INT >= 33) {
@@ -222,14 +221,36 @@ public class MainActivity extends Activity {
         }
     }
 
-    /** The widget (a job row, Ledger setup) or Microsoft's sign-in page coming back. */
+    /** The widget: a job row, or Ledger setup. (Microsoft's sign-in page returns to MSAL's own BrowserTabActivity.) */
     @Override
     protected void onNewIntent(Intent i) {
         super.onNewIntent(i);
         setIntent(i);
-        if (MsAuth.isRedirect(i)) { MsAuth.finish(this, i.getData()); return; }
         String j = fromIntent(i);
         if (j != null) emit("open", j);
+    }
+
+    interface GraphCall { Object run() throws Exception; }
+
+    /** Run a Graph call on the background thread and answer the page with a "graph" event. */
+    void graph(String req, GraphCall call) {
+        Ms.BG.execute(() -> {
+            StringBuilder b = new StringBuilder("{\"req\":").append(JSONObject.quote(req));
+            try {
+                Object v = call.run();
+                b.append(",\"ok\":true,\"data\":").append(v == null ? "null" : v instanceof String ? JSONObject.quote((String) v) : v.toString());
+            } catch (Exception e) {
+                Ms.Fail f = e instanceof Ms.Fail ? (Ms.Fail) e : e instanceof IOException ? new Ms.Fail("offline", "no signal") : Ms.map(e);
+                b.append(",\"ok\":false,\"code\":").append(JSONObject.quote(f.code)).append(",\"msg\":").append(JSONObject.quote(String.valueOf(f.getMessage())));
+            }
+            emit("graph", b.append('}').toString());
+        });
+    }
+
+    /** a staged upload, by the id stageBegin gave (no paths from the page) */
+    File staged(String id) throws IOException {
+        if (id == null || !id.matches("u\\d+")) throw new IOException("bad file id");
+        return new File(new File(getCacheDir(), "stage"), id);
     }
 
     private static String fromIntent(Intent i) {
@@ -303,12 +324,42 @@ public class MainActivity extends Activity {
         }
         @JavascriptInterface public String readToday() { return TodayStore.read(MainActivity.this).toString(); }
         @JavascriptInterface public String startIntent() { String s = startJson; startJson = null; return s; }
-        @JavascriptInterface public void syncNow() { if (MsAuth.signedIn(MainActivity.this)) GaiaSync.now(MainActivity.this); }
+        @JavascriptInterface public void syncNow() { if (Ms.signedIn(MainActivity.this)) GaiaSync.now(MainActivity.this); }
 
-        /* OneDrive sign-in (tokens stay in this app's private storage) */
-        @JavascriptInterface public void msSignIn(String clientId) { ui.post(() -> MsAuth.begin(MainActivity.this, clientId.trim())); }
-        @JavascriptInterface public void msToken(String clientId) { MsAuth.token(MainActivity.this); }
-        @JavascriptInterface public boolean msSignedIn() { return MsAuth.signedIn(MainActivity.this); }
-        @JavascriptInterface public void msSignOut() { MsAuth.signOut(MainActivity.this); GaiaWidget.updateAll(MainActivity.this); }
+        /* OneDrive with MSAL. Tokens never come to the page; it only sees the account name and the results. */
+        @JavascriptInterface public void msSignIn(String ignored) { Ms.signIn(MainActivity.this); }
+        @JavascriptInterface public boolean msSignedIn() { return Ms.signedIn(MainActivity.this); }
+        @JavascriptInterface public String msAccount() { return Ms.account(MainActivity.this); }
+        @JavascriptInterface public void msSignOut() { Ms.signOut(MainActivity.this); }
+
+        /* Graph, GAIA/Jobs only. Each call answers with the "graph" event: {req, ok, data | code + msg}. */
+        @JavascriptInterface public void listJobs(String req, String knownJson) {
+            graph(req, () -> { JSONObject k; try { k = new JSONObject(knownJson == null || knownJson.isEmpty() ? "{}" : knownJson); } catch (Exception e) { k = new JSONObject(); } return Graph.listJobs(MainActivity.this, k); });
+        }
+        @JavascriptInterface public void readFile(String req, String path) { graph(req, () -> Graph.readFile(MainActivity.this, path)); }
+        @JavascriptInterface public void uploadFile(String req, String localFile, String path, String mime) {
+            graph(req, () -> {
+                File f = staged(localFile);
+                try { return Graph.uploadFile(MainActivity.this, f, path, mime); }
+                finally { //noinspection ResultOfMethodCallIgnored
+                    f.delete(); }
+            });
+        }
+        @JavascriptInterface public void writeJobJson(String req, String id, String json) { graph(req, () -> { Graph.writeJobJson(MainActivity.this, id, json); return true; }); }
+
+        /* a file from the page, in pieces, into the app's cache (then uploadFile sends it) */
+        @JavascriptInterface public String stageBegin() {
+            File d = new File(getCacheDir(), "stage");
+            if (!d.isDirectory()) //noinspection ResultOfMethodCallIgnored
+                d.mkdirs();
+            String id = "u" + System.nanoTime();
+            try { if (!new File(d, id).createNewFile()) return ""; } catch (IOException e) { return ""; }
+            return id;
+        }
+        @JavascriptInterface public boolean stageChunk(String id, String b64) {
+            try (java.io.FileOutputStream o = new java.io.FileOutputStream(staged(id), true)) { o.write(Base64.decode(b64, Base64.DEFAULT)); return true; }
+            catch (Exception e) { return false; }
+        }
+        @JavascriptInterface public void stageEnd(String id) { /* nothing to close: each piece is appended and closed */ }
     }
 }
