@@ -29,6 +29,16 @@ After changing Crew Studio, copy the new page in and push:
 3. GPS → Connect → pick the rover. Android asks once for "Nearby devices": allow it.
 4. The Fix tile turns FIX when the corrections arrive (the link tile shows NTRIP ✓).
 
+## OneDrive and the GAIA Today widget
+- App registration (free): platform **Mobile and desktop applications**, redirect `com.crewstudio.app://auth`,
+  Graph delegated permissions Files.ReadWrite + offline_access. Paste the client ID in Settings → OneDrive → Connect;
+  sign-in opens in the phone's browser and comes back to the app. Tokens stay in the app's private storage (no backup).
+- Widget: long-press the home screen → Widgets → Crew Studio → **GAIA Today** (4×2; stretch to 4×3 for more jobs).
+  It reads only `files/today.json`, which the page writes through the bridge (`writeToday`) whenever jobs or sync change.
+- Background check (`GaiaSyncWorker`, WorkManager): about 5:30 AM daily and every 60 minutes, only on a network and only
+  while signed in; Refresh on the widget runs it at once. It counts new / changed jobs in GAIA/Jobs and writes only
+  folder names and counts into today.json → remote. Importing stays in the app.
+
 ## Signing
 `app/crewstudio.keystore` (passwords in `gradle.properties`) signs the test builds, so every build installs as
 an update of the previous one. Make a new private key before publishing the app anywhere public.

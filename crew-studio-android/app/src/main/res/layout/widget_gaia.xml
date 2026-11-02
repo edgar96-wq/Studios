@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- GAIA Today: marble body, dark purple header, gold edge. Only RemoteViews-safe views here. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root" android:layout_width="match_parent" android:layout_height="match_parent"
+    android:background="@drawable/widget_frame" android:padding="1.5dp">
+    <FrameLayout android:id="@+id/body" android:layout_width="match_parent" android:layout_height="match_parent"
+        android:background="@drawable/widget_body" android:clipToOutline="true">
+        <ImageView android:id="@+id/marble" android:layout_width="match_parent" android:layout_height="match_parent"
+            android:src="@drawable/widget_marble" android:scaleType="centerCrop" android:importantForAccessibility="no" />
+        <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical">
+
+            <LinearLayout android:id="@+id/head" android:layout_width="match_parent" android:layout_height="44dp" android:orientation="horizontal"
+                android:gravity="center_vertical" android:background="@drawable/widget_head" android:paddingStart="10dp" android:paddingEnd="4dp">
+                <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@mipmap/ic_launcher_round" android:importantForAccessibility="no" />
+                <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:paddingStart="8dp" android:paddingEnd="6dp">
+                    <TextView android:id="@+id/title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="GAIA Today"
+                        android:fontFamily="serif" android:textSize="15sp" android:textStyle="bold" android:textColor="#ECD38A" android:maxLines="1" />
+                    <TextView android:id="@+id/status" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Not connected"
+                        android:fontFamily="sans-serif-condensed" android:textSize="11sp" android:textColor="#E3D6EE" android:maxLines="1" android:ellipsize="end" />
+                </LinearLayout>
+                <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="vertical" android:gravity="center_horizontal" android:paddingEnd="2dp">
+                    <TextView android:id="@+id/count" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="3"
+                        android:fontFamily="sans-serif-condensed" android:textStyle="bold" android:textSize="21sp" android:textColor="#ECD38A" android:includeFontPadding="false" />
+                    <TextView android:id="@+id/countLabel" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="jobs"
+                        android:textSize="9.5sp" android:textColor="#E3D6EE" android:includeFontPadding="false" />
+                </LinearLayout>
+                <ImageView android:id="@+id/refresh" android:layout_width="36dp" android:layout_height="36dp" android:padding="8dp"
+                    android:src="@drawable/ic_wg_refresh" android:contentDescription="Refresh" />
+            </LinearLayout>
+
+            <LinearLayout android:id="@+id/list" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"
+                android:orientation="vertical" android:paddingStart="10dp" android:paddingEnd="10dp" android:paddingTop="3dp">
+            <LinearLayout android:id="@+id/row0" android:layout_width="match_parent" android:layout_height="21dp" android:orientation="horizontal"
+                android:gravity="center_vertical" android:background="@drawable/wg_row" android:paddingStart="2dp" android:paddingEnd="2dp" android:visibility="visible">
+                <TextView android:id="@+id/no0" android:layout_width="wrap_content" android:layout_height="wrap_content" android:minWidth="66dp" android:maxLines="1"
+                    android:fontFamily="sans-serif-condensed" android:textStyle="bold" android:textSize="13sp" android:textColor="#3B1D52" android:text="B-177608" />
+                <TextView android:id="@+id/addr0" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:maxLines="1" android:ellipsize="end"
+                    android:textSize="12.5sp" android:textColor="#231A2B" android:paddingStart="6dp" android:paddingEnd="6dp" android:text="4247 Avanti Cir, North Port" />
+                <TextView android:id="@+id/due0" android:layout_width="wrap_content" android:layout_height="wrap_content" android:maxLines="1"
+                    android:fontFamily="sans-serif-condensed" android:textSize="11.5sp" android:textColor="#7A5A14" android:text="today" />
+            </LinearLayout>
+            <LinearLayout android:id="@+id/row1" android:layout_width="match_parent" android:layout_height="21dp" android:orientation="horizontal"
+                android:gravity="center_vertical" android:background="@drawable/wg_row" android:paddingStart="2dp" android:paddingEnd="2dp" android:visibility="visible">
+                <TextView android:id="@+id/no1" android:layout_width="wrap_content" android:layout_height="wrap_content" android:minWidth="66dp" android:maxLines="1"
+                    android:fontFamily="sans-serif-condensed" android:textStyle="bold" android:textSize="13sp" android:textColor="#3B1D52" android:text="B-177611" />
+                <TextView android:id="@+id/addr1" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:maxLines="1" android:ellipsize="end"
+                    android:textSize="12.5sp" android:textColor="#231A2B" android:paddingStart="6dp" android:paddingEnd="6dp" android:text="18 Harbor Blvd, Port Charlotte" />
+                <TextView android:id="@+id/due1" android:layout_width="wrap_content" android:layout_height="wrap_content" android:maxLines="1"
+                    android:fontFamily="sans-serif-condensed" android:textSize="11.5sp" android:textColor="#7A5A14" android:text="today" />
+            </LinearLayout>
+            <LinearLayout android:id="@+id/row2" android:layout_width="match_parent" android:layout_height="21dp" android:orientation="horizontal"
+                android:gravity="center_vertical" android:background="@drawable/wg_row" android:paddingStart="2dp" android:paddingEnd="2dp" android:visibility="visible">
+                <TextView android:id="@+id/no2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:minWidth="66dp" android:maxLines="1"
+                    android:fontFamily="sans-serif-condensed" android:textStyle="bold" android:textSize="13sp" android:textColor="#3B1D52" android:text="B-177615" />
+                <TextView android:id="@+id/addr2" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:maxLines="1" android:ellipsize="end"
+                    android:textSize="12.5sp" android:textColor="#231A2B" android:paddingStart="6dp" android:paddingEnd="6dp" android:text="902 Elm Rd, Punta Gorda" />
+                <TextView android:id="@+id/due2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:maxLines="1"
+                    android:fontFamily="sans-serif-condensed" android:textSize="11.5sp" android:textColor="#7A5A14" android:text="today" />
+            </LinearLayout>
+            <LinearLayout android:id="@+id/row3" android:layout_width="match_parent" android:layout_height="21dp" android:orientation="horizontal"
+                android:gravity="center_vertical" android:background="@drawable/wg_row" android:paddingStart="2dp" android:paddingEnd="2dp" android:visibility="gone">
+                <TextView android:id="@+id/no3" android:layout_width="wrap_content" android:layout_height="wrap_content" android:minWidth="66dp" android:maxLines="1"
+                    android:fontFamily="sans-serif-condensed" android:textStyle="bold" android:textSize="13sp" android:textColor="#3B1D52" android:text="" />
+                <TextView android:id="@+id/addr3" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:maxLines="1" android:ellipsize="end"
+                    android:textSize="12.5sp" android:textColor="#231A2B" android:paddingStart="6dp" android:paddingEnd="6dp" android:text="" />
+                <TextView android:id="@+id/due3" android:layout_width="wrap_content" android:layout_height="wrap_content" android:maxLines="1"
+                    android:fontFamily="sans-serif-condensed" android:textSize="11.5sp" android:textColor="#7A5A14" android:text="" />
+            </LinearLayout>
+            <LinearLayout android:id="@+id/row4" android:layout_width="match_parent" android:layout_height="21dp" android:orientation="horizontal"
+                android:gravity="center_vertical" android:background="@drawable/wg_row" android:paddingStart="2dp" android:paddingEnd="2dp" android:visibility="gone">
+                <TextView android:id="@+id/no4" android:layout_width="wrap_content" android:layout_height="wrap_content" android:minWidth="66dp" android:maxLines="1"
+                    android:fontFamily="sans-serif-condensed" android:textStyle="bold" android:textSize="13sp" android:textColor="#3B1D52" android:text="" />
+                <TextView android:id="@+id/addr4" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:maxLines="1" android:ellipsize="end"
+                    android:textSize="12.5sp" android:textColor="#231A2B" android:paddingStart="6dp" android:paddingEnd="6dp" android:text="" />
+                <TextView android:id="@+id/due4" android:layout_width="wrap_content" android:layout_height="wrap_content" android:maxLines="1"
+                    android:fontFamily="sans-serif-condensed" android:textSize="11.5sp" android:textColor="#7A5A14" android:text="" />
+            </LinearLayout>
+            <LinearLayout android:id="@+id/row5" android:layout_width="match_parent" android:layout_height="21dp" android:orientation="horizontal"
+                android:gravity="center_vertical" android:background="@drawable/wg_row" android:paddingStart="2dp" android:paddingEnd="2dp" android:visibility="gone">
+                <TextView android:id="@+id/no5" android:layout_width="wrap_content" android:layout_height="wrap_content" android:minWidth="66dp" android:maxLines="1"
+                    android:fontFamily="sans-serif-condensed" android:textStyle="bold" android:textSize="13sp" android:textColor="#3B1D52" android:text="" />
+                <TextView android:id="@+id/addr5" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:maxLines="1" android:ellipsize="end"
+                    android:textSize="12.5sp" android:textColor="#231A2B" android:paddingStart="6dp" android:paddingEnd="6dp" android:text="" />
+                <TextView android:id="@+id/due5" android:layout_width="wrap_content" android:layout_height="wrap_content" android:maxLines="1"
+                    android:fontFamily="sans-serif-condensed" android:textSize="11.5sp" android:textColor="#7A5A14" android:text="" />
+            </LinearLayout>
+                <TextView android:id="@+id/empty" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone"
+                    android:paddingTop="6dp" android:textSize="12.5sp" android:textColor="#6B6272" android:text="No open jobs today." />
+                <TextView android:id="@+id/more" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone" android:gravity="end"
+                    android:fontFamily="sans-serif-condensed" android:textSize="11sp" android:textColor="#6B6272" android:text="+2 more" />
+            </LinearLayout>
+
+            <LinearLayout android:id="@+id/actions" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal"
+                android:paddingStart="5dp" android:paddingEnd="5dp" android:paddingTop="3dp" android:paddingBottom="7dp">
+            <LinearLayout android:id="@+id/btnOpen" android:layout_width="0dp" android:layout_height="32dp" android:layout_weight="1" android:layout_marginStart="3dp" android:layout_marginEnd="3dp"
+                android:orientation="horizontal" android:gravity="center" android:background="@drawable/wg_btn" android:paddingStart="8dp" android:paddingEnd="8dp">
+                <ImageView android:id="@+id/icOpen" android:layout_width="16dp" android:layout_height="16dp" android:src="@drawable/ic_wg_open" android:importantForAccessibility="no" />
+                <TextView android:id="@+id/txOpen" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="5dp" android:maxLines="1" android:ellipsize="end"
+                    android:textSize="12.5sp" android:textStyle="bold" android:textColor="#ECD38A" android:text="Open" android:contentDescription="Open Crew Studio" />
+            </LinearLayout>
+            <LinearLayout android:id="@+id/btnRoute" android:layout_width="0dp" android:layout_height="32dp" android:layout_weight="1" android:layout_marginStart="3dp" android:layout_marginEnd="3dp"
+                android:orientation="horizontal" android:gravity="center" android:background="@drawable/wg_btn" android:paddingStart="8dp" android:paddingEnd="8dp">
+                <ImageView android:id="@+id/icRoute" android:layout_width="16dp" android:layout_height="16dp" android:src="@drawable/ic_wg_route" android:importantForAccessibility="no" />
+                <TextView android:id="@+id/txRoute" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="5dp" android:maxLines="1" android:ellipsize="end"
+                    android:textSize="12.5sp" android:textStyle="bold" android:textColor="#ECD38A" android:text="Route" />
+            </LinearLayout>
+            <LinearLayout android:id="@+id/btnLedger" android:layout_width="0dp" android:layout_height="32dp" android:layout_weight="1" android:layout_marginStart="3dp" android:layout_marginEnd="3dp"
+                android:orientation="horizontal" android:gravity="center" android:background="@drawable/wg_btn" android:paddingStart="8dp" android:paddingEnd="8dp">
+                <ImageView android:id="@+id/icLedger" android:layout_width="16dp" android:layout_height="16dp" android:src="@drawable/ic_wg_ledger" android:importantForAccessibility="no" />
+                <TextView android:id="@+id/txLedger" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="5dp" android:maxLines="1" android:ellipsize="end"
+                    android:textSize="12.5sp" android:textStyle="bold" android:textColor="#ECD38A" android:text="Ledger" />
+            </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+    </FrameLayout>
+</FrameLayout>

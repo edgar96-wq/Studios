@@ -3,4 +3,10 @@
     <color name="marble">#EEEBE6</color>
     <color name="plum">#3B1D52</color>
     <color name="icon_bg">#3B1D52</color>
+    <color name="plum_ink">#2A1239</color>
+    <color name="ink">#231A2B</color>
+    <color name="muted">#6B6272</color>
+    <color name="gold">#B48A2E</color>
+    <color name="gold_hi">#ECD38A</color>
+    <color name="gold_ink">#7A5A14</color>
 </resources>

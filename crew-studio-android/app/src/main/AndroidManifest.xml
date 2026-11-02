@@ -14,6 +14,8 @@
     <queries>
         <intent><action android:name="android.media.action.IMAGE_CAPTURE" /></intent>
         <intent><action android:name="android.intent.action.VIEW" /><data android:scheme="https" /></intent>
+        <!-- the widget's Ledger button opens Ledger Studio by package name -->
+        <intent><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent>
     </queries>
 
     <application
@@ -35,7 +37,24 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- Microsoft sign-in comes back here (app registration: Mobile and desktop, com.crewstudio.app://auth) -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="com.crewstudio.app" android:host="auth" />
+            </intent-filter>
         </activity>
+
+        <receiver
+            android:name=".GaiaWidget"
+            android:exported="false"
+            android:label="@string/widget_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/gaia_widget_info" />
+        </receiver>
 
         <provider
             android:name="androidx.core.content.FileProvider"

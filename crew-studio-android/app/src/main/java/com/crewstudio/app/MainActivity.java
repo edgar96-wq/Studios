@@ -54,6 +54,7 @@ public class MainActivity extends Activity {
     Saver saver;
     ValueCallback<Uri[]> fileCb;
     Uri cameraUri;
+    String startJson; // what the widget asked for before the page was ready
     final Handler ui = new Handler(Looper.getMainLooper());
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -95,8 +96,6 @@ public class MainActivity extends Activity {
                 Uri u = req.getUrl();
                 String h = u.getHost() == null ? "" : u.getHost();
                 if ("appassets.androidplatform.net".equals(h)) return false;
-                // Microsoft sign-in for OneDrive stays inside the app, so it can come back with the code
-                if (h.matches("(.+\\.)?(login\\.microsoftonline\\.com|login\\.live\\.com|account\\.live\\.com|login\\.microsoft\\.com|account\\.microsoft\\.com|logincdn\\.msftauth\\.net)")) return false;
                 try { startActivity(new Intent(Intent.ACTION_VIEW, u)); } catch (ActivityNotFoundException e) { /* nothing can open it */ }
                 return true; // maps and other links open in their own apps
             }
@@ -111,6 +110,9 @@ public class MainActivity extends Activity {
         saver = new Saver(this);
         web.addJavascriptInterface(new Bridge(), "CrewNative");
         if (state != null) web.restoreState(state); else web.loadUrl(HOME);
+        startJson = fromIntent(getIntent());
+        if (MsAuth.isRedirect(getIntent())) MsAuth.finish(this, getIntent().getData());
+        GaiaSync.schedule(this);
 
         if (Build.VERSION.SDK_INT >= 33) {
             getOnBackInvokedDispatcher().registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_DEFAULT, this::handleBack);
@@ -220,6 +222,30 @@ public class MainActivity extends Activity {
         }
     }
 
+    /** The widget (a job row, Ledger setup) or Microsoft's sign-in page coming back. */
+    @Override
+    protected void onNewIntent(Intent i) {
+        super.onNewIntent(i);
+        setIntent(i);
+        if (MsAuth.isRedirect(i)) { MsAuth.finish(this, i.getData()); return; }
+        String j = fromIntent(i);
+        if (j != null) emit("open", j);
+    }
+
+    private static String fromIntent(Intent i) {
+        if (i == null) return null;
+        String job = i.getStringExtra(GaiaWidget.EXTRA_JOB), what = i.getStringExtra(GaiaWidget.EXTRA_WHAT);
+        if (job != null) return "{\"job\":" + JSONObject.quote(job) + "}";
+        if (what != null) return "{\"what\":" + JSONObject.quote(what) + "}";
+        return null;
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        emit("resume", "{}"); // the page picks up what the background check saw
+    }
+
     @Override
     protected void onSaveInstanceState(Bundle out) {
         super.onSaveInstanceState(out);
@@ -235,7 +261,7 @@ public class MainActivity extends Activity {
 
     /** What the page can call: window.CrewNative.* */
     public class Bridge {
-        @JavascriptInterface public String version() { return "1"; }
+        @JavascriptInterface public String version() { return "2"; }
 
         @JavascriptInterface public String btPaired() {
             if (!hasBtPermission()) {
@@ -269,5 +295,20 @@ public class MainActivity extends Activity {
                 try { startActivityForResult(i, REQ_TREE); } catch (ActivityNotFoundException e) { emit("folder", "{\"ok\":false}"); }
             });
         }
+
+        /* GAIA Today widget */
+        @JavascriptInterface public void writeToday(String json) {
+            TodayStore.writePage(MainActivity.this, json);
+            GaiaWidget.updateAll(MainActivity.this);
+        }
+        @JavascriptInterface public String readToday() { return TodayStore.read(MainActivity.this).toString(); }
+        @JavascriptInterface public String startIntent() { String s = startJson; startJson = null; return s; }
+        @JavascriptInterface public void syncNow() { if (MsAuth.signedIn(MainActivity.this)) GaiaSync.now(MainActivity.this); }
+
+        /* OneDrive sign-in (tokens stay in this app's private storage) */
+        @JavascriptInterface public void msSignIn(String clientId) { ui.post(() -> MsAuth.begin(MainActivity.this, clientId.trim())); }
+        @JavascriptInterface public void msToken(String clientId) { MsAuth.token(MainActivity.this); }
+        @JavascriptInterface public boolean msSignedIn() { return MsAuth.signedIn(MainActivity.this); }
+        @JavascriptInterface public void msSignOut() { MsAuth.signOut(MainActivity.this); GaiaWidget.updateAll(MainActivity.this); }
     }
 }

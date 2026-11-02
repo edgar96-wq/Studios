@@ -1,2 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources><string name="app_name">Crew Studio</string></resources>
+<resources>
+    <string name="app_name">Crew Studio</string>
+    <string name="widget_name">GAIA Today</string>
+    <string name="widget_desc">Today\'s jobs, OneDrive sync and the route, at a glance.</string>
+</resources>

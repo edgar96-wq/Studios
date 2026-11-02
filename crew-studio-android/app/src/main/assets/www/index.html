@@ -349,7 +349,7 @@ body.phone .tab .xs{display:inline}body.phone .tab .s.rev{display:none}
    Crew Studio — field notes, GPS shots, photos and checks.
    Single file. Data stays on this device (browser storage).
    ================================================================ */
-const VERSION = '0.7.0';
+const VERSION = '0.7.1';
 const KEY = 'surveyorStudio.v1';
 const D2R = Math.PI / 180, USFT = 3937 / 1200;
 const $ = (s, r = document) => r.querySelector(s);
@@ -526,7 +526,7 @@ let saveT = null, storageWarned = false;
 function save() {
   clearTimeout(saveT);
   saveT = setTimeout(() => {
-    try { localStorage.setItem(KEY, JSON.stringify(S)); }
+    try { localStorage.setItem(KEY, JSON.stringify(S)); if (typeof writeToday === 'function') writeToday(); }
     catch (e) { if (!storageWarned) { storageWarned = true; toast('This device did not keep the last change: browser storage is full or blocked. Back up your jobs, then remove old ones or load a smaller plat image.', 'crit', 8000); } }
   }, 250);
 }
@@ -4208,13 +4208,14 @@ function settingsDialog() {
     title: 'Settings', wide: true,
     body: h3('Field rule F3 · tape vs GPS') + `<div class="grid2">${field("Illogical difference, ft", 'sIll', s.illFt, 'inputmode="decimal"')}${field('… or % of the line', 'sPct', s.illPct, 'inputmode="decimal"')}${field('Max HRMS for a corner shot, ft', 'sH', s.hrmsMax, 'inputmode="decimal"')}${field('Short piece (tape governs) under, ft', 'sShort', s.shortMax, 'inputmode="decimal"')}</div>`
       + (NATIVE ? h3('Saving exports') + `<div class="grid2">${selectField('Save files to', 'sSave', [['ask', 'Ask each time'], ['pick', 'OneDrive / choose each time'], ...(s.saveFolder ? [['folder', s.saveFolder]] : []), ['phone', 'This phone (Downloads › Crew Studio)']], s.saveTo || 'ask')}<div class="field" style="justify-content:flex-end"><button class="btn" type="button" id="sFolder">${s.saveFolder ? 'Change folder…' : 'Pick a folder once…'}</button></div></div><p class="muted" style="font-size:12.5px;margin:0">Pick your OneDrive job folder once and every export lands there. If OneDrive doesn't appear in the folder list, use "OneDrive / choose each time".</p>` : '')
+      + (NATIVE ? h3('Home-screen widget · GAIA Today') + `<div class="grid2">${field('Ledger Studio package name', 'sLedger', s.ledgerPkg || '', 'placeholder="e.g. com.ledgerstudio.app" autocomplete="off" spellcheck="false"')}</div><p class="muted" style="font-size:12.5px;margin:0">The widget's Ledger button opens this app. Long-press the home screen → Widgets → Crew Studio to add GAIA Today.</p>` : '')
       + `<p class="muted" style="font-size:12.5px">Rover, corrections, coordinate system and staking are in <b>Rover setup</b> (GPS tab). These apply to every job on this device. Crew Studio ${VERSION}.</p>`,
     actions: [{ label: 'OneDrive', onClick: () => { setTimeout(gaiaSetup, 30); } }, { label: 'Rover setup', onClick: () => { setTimeout(roverSetup, 30); } }, { label: 'Cancel' }, {
       label: 'Save', kind: 'primary', onClick: r => {
         const n = id => parseFloat($('#' + id, r).value);
         const vals = { illFt: n('sIll'), illPct: n('sPct'), hrmsMax: n('sH'), shortMax: n('sShort') };
         for (const [k, v] of Object.entries(vals)) if (!isFinite(v) || v < 0) { toast('Check the value for ' + k + '.', 'warn'); return false; }
-        Object.assign(S.settings, vals); if (NATIVE && $('#sSave', r)) S.settings.saveTo = $('#sSave', r).value; save(); render();
+        Object.assign(S.settings, vals); if (NATIVE && $('#sSave', r)) S.settings.saveTo = $('#sSave', r).value; if ($('#sLedger', r)) S.settings.ledgerPkg = $('#sLedger', r).value.trim(); save(); render();
       },
     }],
     onMount: r => { const b = $('#sFolder', r); if (b) b.onclick = () => NATIVE.pickFolder(); },
@@ -4550,9 +4551,9 @@ async function msAccess() {
   const err = new Error('signin'); err.signin = true; throw err;
 }
 const msWaits = [];
-NATIVE_EV.mstoken = d => { const w = msWaits.splice(0); if (d.access) { MS.tok = { access: d.access, exp: Date.now() + (d.expires || 3000) * 1000, account: d.account || (MS.tok && MS.tok.account) }; w.forEach(x => x.res(d.access)); } else { const e = new Error(d.error || 'signin'); e.signin = true; w.forEach(x => x.rej(e)); } };
+NATIVE_EV.mstoken = d => { const w = msWaits.splice(0); if (d.access) { MS.tok = { access: d.access, exp: Date.now() + (d.expires || 3000) * 1000, account: d.account || (MS.tok && MS.tok.account) }; w.forEach(x => x.res(d.access)); } else { const e = new Error(d.error || 'signin'); e.signin = !d.error || d.error === 'signin'; w.forEach(x => x.rej(e)); } };
 NATIVE_EV.ms = d => { if (d.ok) { MS.tok = { access: d.access, exp: Date.now() + (d.expires || 3000) * 1000, account: d.account || '' }; gset().source = 'graph'; save(); toast('OneDrive connected.', 'good'); gaiaCheck(); } else if (!d.cancelled) toast('OneDrive: ' + (d.error || 'sign-in failed'), 'warn', 6000); };
-const msConnected = () => !!(MS.tok && (MS.tok.refresh || (MS.tok.access && MS.tok.exp > Date.now()) || (NATIVE && NATIVE.msToken)));
+const msConnected = () => NATIVE && NATIVE.msSignedIn ? !!NATIVE.msSignedIn() : !!(MS.tok && (MS.tok.refresh || (MS.tok.access && MS.tok.exp > Date.now())));
 const GRAPH = 'https://graph.microsoft.com/v1.0', gpath = rel => '/me/drive/root:/' + (GAIA_ROOT + (rel ? '/' + rel : '')).split('/').map(encodeURIComponent).join('/');
 async function gfetch(url, opt = {}, again) {
   const tk = await msAccess();
@@ -4659,7 +4660,7 @@ async function gaiaCheck(o = {}) { // o.silent: on app open / pull-to-refresh wi
     if (found.length) { if (o.silent) toast(`${found.length} job${found.length > 1 ? 's' : ''} ${found.every(x => x.kind === 'new') ? 'new' : 'new or changed'} in OneDrive.`, 'info', 5000); else gaiaReview(); }
     else if (!o.silent) toast('No new jobs in ' + GAIA_ROOT + '.', 'good', 2500);
   } catch (e) { if (e.signin) { if (!o.silent) toast('OneDrive: sign in again (Settings → OneDrive → Connect).', 'warn', 6000); else if (MS.canWeb() && !sessionStorage.getItem('crew.silent')) { try { sessionStorage.setItem('crew.silent', '1'); } catch (x) { } msSignIn(true); } } else if (!o.silent) toast('OneDrive: ' + e.message, 'warn', 7000); }
-  finally { gaiaBusy = false; U.gaiaSpin = false; renderRails(); if (U.tab === 'today') renderToday(); }
+  finally { gaiaBusy = false; U.gaiaSpin = false; renderRails(); if (U.tab === 'today') renderToday(); writeToday(); }
 }
 function gaiaReview() {
   const f = gset().found || []; if (!f.length) return toast('Nothing new from OneDrive.', 'info', 2500);
@@ -4728,7 +4729,7 @@ function gaiaSetup() {
       <div class="sheet" style="margin-top:6px;padding:8px 12px">${g.source === 'folder' && FolderStore.root ? `Using the folder <b>${esc(FolderStore.root.name)}</b> on this computer.` : msConnected() ? `Connected: <b>${esc(t.account || 'Microsoft account')}</b>` : 'Not connected.'}${g.lastCheck ? ` <span class="muted">· last check ${esc(fmtTime(g.lastCheck))}</span>` : ''}</div>
       <p style="margin:8px 0 0"><button class="btn small" type="button" id="gGuide">${icon('list')}How to get the app ID (free, about 10 minutes)</button></p>`,
     actions: [{ label: 'Close' },
-      ...(msConnected() ? [{ label: 'Disconnect', onClick: () => { MS.tok = null; save(); toast('OneDrive disconnected on this device.'); } }] : []),
+      ...(msConnected() ? [{ label: 'Disconnect', onClick: () => { MS.tok = null; if (NATIVE && NATIVE.msSignOut) NATIVE.msSignOut(); save(); toast('OneDrive disconnected on this device.'); } }] : []),
       ...(fsa ? [{ label: 'Use the GAIA/Jobs folder on this computer', onClick: async r => { gRead(r); try { if (await FolderStore.ready(true)) { g.source = 'folder'; save(); toast(`Using ${FolderStore.root.name}.`, 'good'); gaiaCheck(); } } catch (e) { if (e.name !== 'AbortError') toast(e.message, 'warn'); } } }] : []),
       { label: msConnected() ? 'Save' : 'Connect OneDrive', kind: 'primary', onClick: r => { gRead(r); g.source = 'graph'; save(); if (!g.clientId) { toast('Paste the app (client) ID first — see "How to get the app ID".', 'warn', 5000); return false; } if (!msConnected()) setTimeout(() => msSignIn(false), 30); } }],
     onMount: r => { $('#gGuide', r).onclick = () => { gRead(r); save(); setTimeout(gaiaGuide, 30); }; },
@@ -4736,17 +4737,17 @@ function gaiaSetup() {
   function gRead(r) { g.clientId = $('#gCid', r).value.trim(); g.crew = $('#gCrew', r).value.trim(); g.auto = $('#gAuto', r).checked; }
 }
 function gaiaGuide() {
-  const rd = MS.canWeb() ? MS.redirect() : 'https://appassets.androidplatform.net/assets/www/index.html';
+  const web = MS.canWeb(), rd = web ? MS.redirect() : '';
   modal({
     title: 'Microsoft app registration (free)', wide: true,
     body: `<ol style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:7px;font-size:13.5px">
       <li><b>Get a free directory.</b> Since June 2024 Microsoft only registers apps inside a directory. Sign up at <b>azure.microsoft.com/free</b> with your personal Microsoft account (the one with your OneDrive). It's free; Microsoft asks for a card only to confirm who you are, and app registrations cost nothing.</li>
       <li>Open <b>entra.microsoft.com</b> → <i>Applications</i> → <i>App registrations</i> → <b>New registration</b>.</li>
-      <li>Name: <b>Crew Studio</b>. Supported account types: <b>Personal Microsoft accounts only</b>.</li>
-      <li>Redirect URI: platform <b>Single-page application (SPA)</b>, address:<br><code style="font-size:12px;user-select:all;display:block;word-break:break-all;margin:3px 0">${esc(rd)}</code>${MS.canWeb() ? '' : ' (the phone app)'} → <b>Register</b>.</li>
+      <li>Name: <b>Crew Studio</b>. Supported account types: <b>Personal Microsoft accounts only</b>. Leave Redirect URI empty → <b>Register</b>.</li>
+      <li><i>Authentication</i> → <i>Add a platform</i> → <b>Mobile and desktop applications</b> → custom redirect URI:<br><code style="font-size:12px;user-select:all;display:block;word-break:break-all;margin:3px 0">com.crewstudio.app://auth</code>→ Configure. This is the phone app; it also lets the GAIA Today widget check for jobs while the app is closed.${web ? `<br>For this web version also add <b>Single-page application</b> with:<code style="font-size:12px;user-select:all;display:block;word-break:break-all;margin:3px 0">${esc(rd)}</code>` : ''}</li>
       <li><i>API permissions</i> → <i>Add a permission</i> → <b>Microsoft Graph</b> → <b>Delegated</b>: tick <b>Files.ReadWrite</b> and <b>offline_access</b> (<b>User.Read</b> is already there) → Add. No admin consent is needed.</li>
       <li>On the <i>Overview</i> page copy the <b>Application (client) ID</b> and paste it in Crew Studio → Settings → OneDrive → <b>Connect OneDrive</b>. Microsoft asks once to allow Crew Studio to read and write your files.</li></ol>
-      <p class="muted" style="font-size:12.5px;margin:8px 0 0">Crew Studio only touches ${esc(GAIA_ROOT)}. The sign-in stays on this device and is never exported or backed up. Microsoft keeps a web sign-in for a day; after that the app renews it on its own when it opens (you may see the Microsoft page flash).</p>`,
+      <p class="muted" style="font-size:12.5px;margin:8px 0 0">Crew Studio only touches ${esc(GAIA_ROOT)}. The sign-in stays on this device and is never exported or backed up. On the phone it lasts until you disconnect (or don't use it for 90 days).${web ? ' In a web browser Microsoft keeps it for a day; after that the page renews it when it opens (the Microsoft page may flash).' : ''}</p>`,
     actions: [{ label: 'Back', onClick: () => setTimeout(gaiaSetup, 30) }],
   });
 }
@@ -4757,6 +4758,51 @@ function gaiaPull(el) {
   el.addEventListener('touchmove', e => { if (y0 == null) return; d = e.touches[0].clientY - y0; const h = ind(); if (h) { h.style.height = Math.max(0, Math.min(56, d * 0.5)) + 'px'; h.textContent = d > 90 ? 'Release to check OneDrive' : 'Pull to check OneDrive'; } }, { passive: true });
   el.addEventListener('touchend', () => { const h = ind(); if (h) h.style.height = '0px'; if (y0 != null && d > 90) gaiaCheck({ pull: true }); y0 = null; });
 }
+
+/* ---- GAIA Today home-screen widget. The page writes today.json through the bridge whenever jobs or sync change;
+   the widget reads only that file. The phone's background check (5:30 AM, then hourly on a network) adds a "remote" part. ---- */
+let todayT = 0, todaySent = '';
+function todayData() {
+  const g = gset(), open = S.jobs.filter(j => j.status !== 'closed');
+  const on = g.source === 'folder' ? !!FolderStore.root : msConnected();
+  const state = !on ? (g.clientId || g.source === 'folder' ? 'signin' : 'off') : navigator.onLine === false ? 'offline' : 'ok';
+  const known = {}; for (const j of S.jobs) if (j.gaia && j.gaia.id) known[j.gaia.id] = j.gaia.etag || ''; for (const f of g.found || []) known[f.id] = f.etag || '';
+  return { // job no., address, due and status only: no client, buyer, seller or phone numbers, and never a token
+    v: 1, app: VERSION, day: dayLocal(),
+    sync: { state, last: g.lastCheck || null, pending: S.jobs.filter(x => x.gaia && x.gaia.pending).length, found: (g.found || []).length },
+    count: open.length,
+    jobs: open.slice(0, 12).map(j => ({ id: j.id, no: j.no || '', address: j.address || '', due: j.due || '', status: j.status })),
+    route: mapsRoute(S.jobs), ledger: (S.settings.ledgerPkg || '').trim(),
+    gaia: { clientId: g.source === 'graph' ? g.clientId.trim() : '', root: GAIA_ROOT, open: GAIA_OPEN, known },
+  };
+}
+function writeToday(now) {
+  if (!NATIVE || !NATIVE.writeToday) return;
+  clearTimeout(todayT);
+  todayT = setTimeout(() => {
+    try { const d = todayData(), k = JSON.stringify(d); if (k === todaySent) return; todaySent = k; d.updated = isoLocal(); NATIVE.writeToday(JSON.stringify(d)); } catch (e) { console.error(e); }
+  }, now ? 0 : 1200);
+}
+function readToday() { // what the background check found while the app was closed
+  if (!NATIVE || !NATIVE.readToday) return null;
+  try { const d = JSON.parse(NATIVE.readToday() || 'null'); return d && d.remote || null; } catch (e) { return null; }
+}
+function crewOpenJob(key) { // the widget's job rows (and anything else that names a job)
+  const j = S.jobs.find(x => x.id === key) || S.jobs.find(x => x.no && x.no === key) || gaiaJobOf(key); if (!j) { switchTab('today'); return toast('That job is no longer on this phone.', 'warn', 4000); }
+  if (modalOpen) closeModal();
+  S.activeJobId = j.id; U.sel = null; U.gpsSel = null; U.platSel = null; save();
+  if (j.status === 'planned') { U.tab = null; switchTab('today'); setTimeout(() => { const c = $('#vToday .card.cur'); if (c) c.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 60); return toast(`${j.no || 'Job'} · press Start when you're on site.`, 'info', 3500); }
+  U.tab = null; switchTab('notes');
+}
+window.__crewOpenJob = crewOpenJob;
+NATIVE_EV.open = d => { if (d.job) crewOpenJob(d.job); else if (d.what === 'ledger-setup') settingsDialog(); };
+NATIVE_EV.resume = () => { // back to the front: pick up what the background check saw, refresh if it's been a while
+  const r = readToday(), g = gset(), last = g.lastCheck ? Date.parse(g.lastCheck) : 0;
+  if (r && r.checked && Date.parse(r.checked) > last && r.new > 0) gaiaCheck({ silent: true });
+  else if (g.auto && (g.source === 'folder' || g.clientId) && Date.now() - last > 15 * 60000) gaiaCheck({ silent: true });
+  writeToday(true);
+};
+window.addEventListener('offline', () => writeToday()); window.addEventListener('online', () => writeToday());
 
 /* ---------------- rover (Web Serial NMEA) ---------------- */
 async function roverToggle() {
@@ -5176,6 +5222,8 @@ function seed() {
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { renderRails(); mapKey = ''; paintMap(); tabJoin(false); redraw(); });
   PDB.open();
   gaiaPull($('#vToday'));
+  writeToday(true);
+  if (NATIVE && NATIVE.startIntent) { try { const si = JSON.parse(NATIVE.startIntent() || 'null'); if (si) setTimeout(() => NATIVE_EV.open(si), 80); } catch (e) { } }
   (async () => { try { await msHandleRedirect(); if (gset().auto && (gset().source === 'folder' || gset().clientId)) gaiaCheck({ silent: true }); } catch (e) { console.error(e); } })();
   window.addEventListener('online', () => { if (S.jobs.some(x => x.gaia && x.gaia.pending)) gaiaCheck({ silent: true }); });
   window.addEventListener('beforeunload', () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { } });
