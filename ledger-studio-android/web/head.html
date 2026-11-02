@@ -202,6 +202,9 @@ label.fld { display: grid; gap: 5px; font: 500 11.5px/1.2 var(--f-data); letter-
 /* merchant rules */
 .row.mrule { cursor: default; }
 .row .cap { text-transform: capitalize; }
+.row.grp-row { grid-template-columns: auto 1fr; cursor: default; background: #fff; border-style: solid; }
+.row.grp-row .gbtns { grid-column: 2; }
+@media (min-width: 640px) { .row.grp-row { grid-template-columns: auto 1fr auto; } .row.grp-row .gbtns { grid-column: auto; justify-content: flex-end; } }
 .row.static:hover { border-color: var(--line); }
 .row .rank { text-align: center; min-width: 30px; font: 500 15px/1 var(--f-name); color: var(--gold-ink); }
 .row .rank svg { width: 18px; height: 18px; color: var(--plum); }

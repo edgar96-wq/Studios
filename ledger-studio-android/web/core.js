@@ -150,15 +150,45 @@ function simulateDay(stops, startISO, seed = 7) {
   return pts;
 }
 
-/* --- money & taxes --- */
-const LINES = {
-  '1': 'Gross receipts', 'transfer': 'Not income (transfer, refund, card payment)', '8': 'Advertising', '9': 'Car & truck', 'tolls': 'Parking & tolls (business)', '10': 'Commissions & fees', '11': 'Contract labor',
-  '13': 'Depreciation / Sec. 179', '15': 'Insurance (not health)', '16b': 'Interest', '17': 'Legal & professional', '18': 'Office expense',
-  '20a': 'Rent – vehicles & equipment', '20b': 'Rent – other property', '21': 'Repairs & maintenance', '22': 'Supplies', '23': 'Taxes & licenses',
-  '24a': 'Travel', '24b': 'Meals (50% deductible)', '25': 'Utilities & phone', '27a': 'Other (software, dues, training)',
-  'vehicle': 'Vehicle costs (covered by mileage rate)', 'personal': 'Personal – not deductible'
-};
-const EXPENSE_LINES = ['22', '27a', '25', '15', 'tolls', '24b', '18', '21', '17', '23', '24a', '8', '10', '11', '13', '16b', '20a', '20b', 'vehicle', 'personal'];
+/* --- money & taxes ---
+   Categories are what you pick; each one files to a Schedule C line (line: null = kept for records, not deducted).
+   Made for a one-person survey contractor: lines he doesn't use (contract labor, rent, interest, depreciation,
+   advertising, equipment rental) are left out; the broad "other" line 27a is split into what it really holds. */
+const CATS = [
+  { k: 'survey-pay', kind: 'income', line: '1', name: 'Survey work (paid by the companies)' },
+  { k: 'other-income', kind: 'income', line: '1', name: 'Other business income' },
+  { k: 'transfer', kind: 'income', line: null, name: 'Not income (transfer, refund, card payment)' },
+  { k: 'field-supplies', kind: 'expense', line: '22', name: 'Field supplies (lath, flagging, paint, stakes)' },
+  { k: 'tools', kind: 'expense', line: '22', name: 'Tools & small equipment' },
+  { k: 'safety-gear', kind: 'expense', line: '22', name: 'Safety gear & work boots' },
+  { k: 'phone', kind: 'expense', line: '25', name: 'Phone & internet (business share)' },
+  { k: 'software', kind: 'expense', line: '27a', name: 'Software & apps' },
+  { k: 'dues', kind: 'expense', line: '27a', name: 'Dues & memberships' },
+  { k: 'training', kind: 'expense', line: '27a', name: 'Training & courses' },
+  { k: 'bank-fees', kind: 'expense', line: '27a', name: 'Bank & payment fees' },
+  { k: 'other', kind: 'expense', line: '27a', name: 'Other business expense' },
+  { k: 'insurance', kind: 'expense', line: '15', name: 'Business insurance (liability)' },
+  { k: 'tolls', kind: 'expense', line: '9', name: 'Parking & tolls' },
+  { k: 'meals', kind: 'expense', line: '24b', name: 'Meals (50% deductible)' },
+  { k: 'office', kind: 'expense', line: '18', name: 'Office supplies & postage' },
+  { k: 'tax-prep', kind: 'expense', line: '17', name: 'Tax prep & accounting' },
+  { k: 'licenses', kind: 'expense', line: '23', name: 'Licenses, permits & business taxes' },
+  { k: 'repairs', kind: 'expense', line: '21', name: 'Equipment repairs' },
+  { k: 'travel', kind: 'expense', line: '24a', name: 'Travel away overnight' },
+  { k: 'vehicle', kind: 'expense', line: null, name: 'Fuel & vehicle costs (covered by mileage)' },
+  { k: 'personal', kind: 'expense', line: null, name: 'Personal – not business' }
+];
+const CAT = Object.fromEntries(CATS.map(x => [x.k, x]));
+const INCOME_CATS = CATS.filter(x => x.kind === 'income').map(x => x.k), EXPENSE_CATS = CATS.filter(x => x.kind === 'expense').map(x => x.k);
+/* the old Schedule-C-line values (before categories) → a category */
+const LEGACY_CAT = { '1': 'survey-pay', '22': 'field-supplies', '27a': 'other', '25': 'phone', '15': 'insurance', '24b': 'meals', '18': 'office', '21': 'repairs',
+  '17': 'tax-prep', '23': 'licenses', '24a': 'travel', '8': 'other', '10': 'bank-fees', '11': 'other', '13': 'tools', '16b': 'other', '20a': 'other', '20b': 'other' };
+function catOf(v, kind) { return CAT[v] ? v : LEGACY_CAT[v] || (kind === 'income' ? 'survey-pay' : 'other'); }
+const SCHED_C = { '1': 'Gross receipts', '9': 'Car & truck', '15': 'Insurance (other than health)', '17': 'Legal & professional services', '18': 'Office expense',
+  '21': 'Repairs & maintenance', '22': 'Supplies', '23': 'Taxes & licenses', '24a': 'Travel', '24b': 'Deductible meals', '25': 'Utilities', '27a': 'Other expenses' };
+/* display names, by category (old values still show a sensible name) */
+const LINES = Object.fromEntries([...CATS.map(x => [x.k, x.name]), ...Object.entries(LEGACY_CAT).map(([k, v]) => [k, CAT[v].name])]);
+const EXPENSE_LINES = EXPENSE_CATS;
 const BRACKETS = {
   single: { std: 16100, b: [[12400, .10], [50400, .12], [105700, .22], [201775, .24], [256225, .32], [640600, .35], [Infinity, .37]] },
   mfj: { std: 32200, b: [[24800, .10], [100800, .12], [211400, .22], [403550, .24], [512450, .32], [768700, .35], [Infinity, .37]] }
@@ -170,11 +200,15 @@ function tripDeduction(t, s) { return t.cls === 'business' ? t.miles * rateOn(t.
 function books(S, year, upTo) { // upTo: 'YYYY-MM-DD' inclusive, optional
   const s = S.settings, inR = (d) => d && d.startsWith(String(year)) && (!upTo || d <= upTo);
   const lines = {}; let income = 0;
-  for (const x of S.txns) { if (!inR(x.date)) continue; if (x.kind === 'income') { if ((x.line || '1') === '1') income += x.amount; } else lines[x.line] = (lines[x.line] || 0) + x.amount; }
+  for (const x of S.txns) {
+    if (!inR(x.date)) continue;
+    const k = catOf(x.line, x.kind);
+    if (x.kind === 'income') { if (CAT[k].line === '1') income += x.amount; } else lines[k] = (lines[k] || 0) + x.amount;
+  }
   const miles = { business: 0, commute: 0, other: 0, employer: 0, review: 0 }; let mileDed = 0;
   for (const t of S.trips) { if (!inR(t.date)) continue; const k = t.cls === 'personal' ? 'other' : t.cls; miles[k] = (miles[k] || 0) + t.miles; mileDed += tripDeduction(t, s); }
   const ded = {};
-  for (const [k, v] of Object.entries(lines)) { if (k === 'vehicle' || k === 'personal' || k === 'tolls') continue; ded[k] = k === '24b' ? v * 0.5 : v; }
+  for (const [k, v] of Object.entries(lines)) { const ln = CAT[k].line; if (!ln || ln === '9') continue; ded[ln] = (ded[ln] || 0) + (k === 'meals' ? v * 0.5 : v); }
   ded['9'] = mileDed + (lines.tolls || 0);
   const expenses = Object.values(ded).reduce((a, b) => a + b, 0), net = income - expenses;
   return { income, lines, ded, expenses, net, miles, mileDed };
@@ -218,16 +252,23 @@ function normDate(s) {
   if ((m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})/))) { const y = m[3].length === 2 ? '20' + m[3] : m[3]; return `${y}-${m[1].padStart(2, '0')}-${m[2].padStart(2, '0')}`; }
   return null;
 }
+/* first guess for a merchant you haven't filed yet (category keys) */
 const RULES = [
-  [/shell|exxon|mobil|wawa|racetrac|chevron|bp\b|sunoco|marathon|circle k|speedway|7-eleven|murphy/i, 'vehicle'],
+  [/shell|exxon|mobil|wawa|racetrac|chevron|\bbp\b|sunoco|marathon|circle k|speedway|7-eleven|murphy|autozone|advance auto|o'?reilly|jiffy lube|car wash|tire|geico|progressive/i, 'vehicle'],
   [/sunpass|toll|parking|epass|park mobile|parkmobile/i, 'tolls'],
-  [/home depot|lowe'?s|ace hardware|harbor freight|forestry suppl|ben meadows/i, '22'],
-  [/verizon|t-mobile|tmobile|at&t|att\b|spectrum|comcast|xfinity|frontier/i, '25'],
-  [/autodesk|adobe|microsoft|google|anthropic|claude|dropbox|carlson|trimble|stonex|microsurvey|esri/i, '27a'],
-  [/insurance|geico|progressive|state farm|hiscox|next insurance/i, '15'],
-  [/staples|office depot|usps|fedex|ups store/i, '18'],
-  [/restaurant|cafe|grill|pizza|burger|subway|chick-fil|mcdonald|starbucks|dunkin|taco|diner/i, '24b'],
-  [/sunbiz|division of corporations|license|dbpr|county tax/i, '23']
+  [/harbor freight|northern tool/i, 'tools'],
+  [/home depot|lowe'?s|ace hardware|forestry suppl|ben meadows|grainger|engineer ?supply/i, 'field-supplies'],
+  [/boot barn|red wing|work ?n ?gear|carhartt|duluth/i, 'safety-gear'],
+  [/verizon|t-mobile|tmobile|at&t|\batt\b|spectrum|comcast|xfinity|frontier|cricket|boost mobile/i, 'phone'],
+  [/autodesk|adobe|microsoft|google|anthropic|claude|openai|x\.ai|grok|dropbox|carlson|trimble|stonex|microsurvey|esri|github/i, 'software'],
+  [/fsms|nsps|surveying society|membership|\bdues\b/i, 'dues'],
+  [/udemy|coursera|seminar|\bpdh\b|ppi2pass|kaplan/i, 'training'],
+  [/service charge|monthly (maintenance )?fee|overdraft|wire fee|atm fee|\bnsf\b/i, 'bank-fees'],
+  [/hiscox|next insurance|thimble|insureon/i, 'insurance'],
+  [/staples|office depot|usps|fedex|ups store/i, 'office'],
+  [/turbotax|h&r block|jackson hewitt|taxact/i, 'tax-prep'],
+  [/restaurant|cafe|grill|pizza|burger|subway|chick-fil|mcdonald|starbucks|dunkin|taco|diner/i, 'meals'],
+  [/sunbiz|division of corporations|dbpr|county tax|business tax receipt|license/i, 'licenses']
 ];
 function guessLine(payee) { for (const [re, l] of RULES) if (re.test(payee || '')) return l; return null; }
 /* deposits that are not business income: own transfers, card payments, refunds */
@@ -237,25 +278,57 @@ function payeeKey(p) { return (p || '').toLowerCase().replace(/\b(pos|debit|purc
 const memoKey = (kind, payee) => { const k = payeeKey(payee); return k ? kind + '|' + k : ''; };
 /* a saved "home depot" also matches "home depot port charlotte": try 3, then 2, then 1 words */
 function memoFind(memo, kind, payee) { const w = payeeKey(payee).split(' ').filter(Boolean); for (let n = w.length; n >= 1; n--) { const v = memo[kind + '|' + w.slice(0, n).join(' ')]; if (v) return v; } return null; }
+/* A category from what a file says: a category key ("software"), its name, a Schedule C line ("22", "line 27a") or a common word. */
+const CAT_ALIASES = { income: 'survey-pay', 'gross receipts': 'survey-pay', survey: 'survey-pay', 'not income': 'transfer', refund: 'transfer', 'card payment': 'transfer',
+  fuel: 'vehicle', gas: 'vehicle', 'car & truck': 'vehicle', supplies: 'field-supplies', subscriptions: 'dues', memberships: 'dues', apps: 'software', courses: 'training',
+  fees: 'bank-fees', parking: 'tolls', 'parking & tolls': 'tolls', utilities: 'phone', 'office expense': 'office', 'legal & professional': 'tax-prep', accounting: 'tax-prep',
+  'taxes & licenses': 'licenses', 'repairs & maintenance': 'repairs' };
+function lineFrom(v) {
+  const s = String(v || '').trim().toLowerCase().replace(/^schedule c\s*/, '').replace(/^line\s*/, '');
+  if (!s) return null;
+  if (CAT[s]) return s;
+  if (LEGACY_CAT[s]) return LEGACY_CAT[s];
+  if (CAT_ALIASES[s]) return CAT_ALIASES[s];
+  for (const x of CATS) if (x.name.toLowerCase() === s || x.name.toLowerCase().split(' (')[0] === s) return x.k;
+  return null;
+}
+/* Bank/card CSV → transactions. Extra columns a helper (Atlas) may add are honoured:
+   line (Schedule C code or name), job (job number), note, confidence ("high" = file it; "check"/"low" = review). */
 function csvToTxns(text, fileName, memo = {}) {
   const rows = parseCSV(text); if (rows.length < 1) return { txns: [], error: 'The file has no rows.' };
   const h = rows[0].map(x => x.trim().toLowerCase());
   const find = (...names) => h.findIndex(x => names.some(n => x === n || x.includes(n)));
-  let iD = find('transaction date', 'posted date', 'post date', 'date'), iP = find('description', 'payee', 'merchant', 'name', 'memo'), iA = find('amount'), iDb = find('debit', 'withdrawal'), iCr = find('credit', 'deposit'), body = rows.slice(1);
+  const exact = (...names) => h.findIndex(x => names.includes(x));
+  let iD = find('transaction date', 'posted date', 'post date', 'date'), iP = find('description', 'payee', 'merchant', 'name'), iA = exact('amount'), iDb = find('debit', 'withdrawal'), iCr = find('credit', 'deposit'), body = rows.slice(1);
+  if (iA < 0) iA = find('amount');
+  if (iP < 0) iP = exact('memo');
+  const iL = exact('line', 'schedule c line', 'schedule c', 'sched c', 'category code', 'ledger line'), iJ = exact('job', 'job_id', 'job id', 'wo'),
+    iN = exact('note', 'notes', 'ledger note'), iC = exact('confidence', 'conf');
   if (iD < 0 && normDate(rows[0][0]) && rows[0].length >= 5) { iD = 0; iA = 1; iP = 4; iDb = iCr = -1; body = rows; } /* Wells Fargo style: no header row */
   if (iD < 0 || iP < 0 || (iA < 0 && iDb < 0 && iCr < 0)) return { txns: [], error: 'Could not find Date, Description and Amount (or Debit/Credit) columns.' };
   const num = (s) => { s = (s || '').replace(/[$,\s]/g, ''); if (/^\(.*\)$/.test(s)) s = '-' + s.slice(1, -1); const v = parseFloat(s); return isNaN(v) ? 0 : v; };
   const out = [], seen = {};
+  let classified = 0;
   for (const r of body) {
     const date = normDate(r[iD]); if (!date) continue;
     let amt = iA >= 0 ? num(r[iA]) : (num(r[iCr]) - Math.abs(num(r[iDb])));
     if (!amt) continue;
-    const payee = (r[iP] || '').replace(/\s+/g, ' ').trim(), kind = amt > 0 ? 'income' : 'expense', known = memoFind(memo, kind, payee);
-    const line = known || (kind === 'income' ? (TRANSFER_RE.test(payee) ? 'transfer' : '1') : (guessLine(payee) || '27a'));
+    const payee = (r[iP] || '').replace(/\s+/g, ' ').trim(), kind = amt > 0 ? 'income' : 'expense';
+    const given = iL >= 0 ? lineFrom(r[iL]) : null, fits = given && CAT[given].kind === kind;
+    const conf = iC >= 0 ? String(r[iC] || '').trim().toLowerCase() : '', sure = fits && !/^(check|low|review|\?)/.test(conf);
+    const known0 = memoFind(memo, kind, payee), known = known0 ? catOf(known0, kind) : null;
+    const line = fits ? given : known || (kind === 'income' ? (TRANSFER_RE.test(payee) ? 'transfer' : 'survey-pay') : (guessLine(payee) || 'other'));
+    if (fits) classified++;
     const base = `csv|${date}|${amt.toFixed(2)}|${payee.toLowerCase()}`, nth = seen[base] = (seen[base] || 0) + 1; /* two equal charges on one day stay two */
-    out.push({ id: uid('tx'), schema: 1, date, kind, amount: Math.abs(+amt.toFixed(2)), payee, line, memo: '', jobId: null, source: 'csv:' + fileName, externalId: nth > 1 ? base + '|' + nth : base, status: known ? 'ok' : 'review', autoFiled: !!known });
+    out.push({ id: uid('tx'), schema: 1, date, kind, amount: Math.abs(+amt.toFixed(2)), payee, line, memo: iN >= 0 ? String(r[iN] || '').trim() : '', jobCode: iJ >= 0 ? String(r[iJ] || '').trim() : '',
+      jobId: null, source: 'csv:' + fileName, externalId: nth > 1 ? base + '|' + nth : base, status: sure || (!fits && known) ? 'ok' : 'review', autoFiled: !!(sure || (!fits && known)), classifiedBy: fits ? 'file' : known ? 'rule' : null });
   }
-  return { txns: out };
+  return { txns: out, classified, hasLineColumn: iL >= 0 };
+}
+/* Same transaction already in the books? Same statement row (externalId), or same date + amount + merchant. */
+function sameTxn(a, b) {
+  if (a.externalId && a.externalId === b.externalId) return true;
+  return a.date === b.date && a.kind === b.kind && Math.abs(a.amount - b.amount) < 0.005 && payeeKey(a.payee) === payeeKey(b.payee) && payeeKey(a.payee) !== '';
 }
 
 /* --- GAIA jobs (Integration Spec §3, §5): the WO number is the job code; its prefix says which company pays --- */
@@ -310,4 +383,4 @@ function refileOwnJobTrips(S) {
   return out;
 }
 
-if (typeof module !== 'undefined') module.exports = { hav, llToSpc, spcToLl, detectTrips, classifyTrip, simulateDay, books, taxOn, quarterly, csvToTxns, uid, ymd, rateOn, placesOf, matchRule, migrateSettings, payeeKey, memoKey, memoFind, companyFor, jobSite, refileOwnJobTrips };
+if (typeof module !== 'undefined') module.exports = { hav, llToSpc, spcToLl, detectTrips, classifyTrip, simulateDay, books, taxOn, quarterly, csvToTxns, uid, ymd, rateOn, placesOf, matchRule, migrateSettings, payeeKey, memoKey, memoFind, companyFor, jobSite, refileOwnJobTrips, lineFrom, sameTxn, CATS, CAT, catOf, LEGACY_CAT, guessLine, SCHED_C };

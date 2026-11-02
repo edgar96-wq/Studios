@@ -48,7 +48,7 @@ ok(near(q.lat, 26.93, 1e-8) && near(q.lon, -82.05, 1e-8), 'FL West SPC ↔ lat/l
 /* 6. taxes: transfers are not income; mileage at the dated rate */
 const B = { settings: { rates: [{ from: '2026-01-01', cents: 72.5 }, { from: '2026-07-01', cents: 76 }] }, txns: [
   { date: '2026-03-01', kind: 'income', amount: 1000, line: '1' }, { date: '2026-03-02', kind: 'income', amount: 500, line: 'transfer' },
-  { date: '2026-03-03', kind: 'expense', amount: 100, line: '24b' }, { date: '2026-03-04', kind: 'expense', amount: 60, line: 'vehicle' }],
+  { date: '2026-03-03', kind: 'expense', amount: 100, line: 'meals' }, { date: '2026-03-04', kind: 'expense', amount: 60, line: 'vehicle' }],
   trips: [{ date: '2026-02-01', miles: 10, cls: 'business' }, { date: '2026-08-01', miles: 10, cls: 'business' }, { date: '2026-08-02', miles: 10, cls: 'commute' }] };
 const bk = C.books(B, 2026);
 ok(bk.income === 1000, 'transfer deposit is not counted as income');
@@ -57,11 +57,11 @@ ok(near(bk.expenses, 14.85 + 50, 0.001), 'meals at 50%, fuel not deducted on top
 
 /* 7. bank CSV: duplicates kept apart, merchant memory, Wells Fargo layout */
 const csv = 'Transaction Date,Post Date,Description,Category,Type,Amount\n10/02/2026,10/03/2026,HOME DEPOT #123,,Sale,-38.47\n10/02/2026,10/03/2026,HOME DEPOT #123,,Sale,-38.47\n10/05/2026,10/05/2026,Payment Thank You-Mobile,,Payment,500.00\n';
-const r = C.csvToTxns(csv, 'x.csv', { 'expense|home depot': '22' });
+const r = C.csvToTxns(csv, 'x.csv', { 'expense|home depot': 'field-supplies' });
 ok(r.txns.length === 3 && r.txns[0].externalId !== r.txns[1].externalId, 'two equal charges on one day stay two');
-ok(r.txns[0].status === 'ok' && r.txns[0].line === '22', 'remembered merchant is filed without review');
+ok(r.txns[0].status === 'ok' && r.txns[0].line === 'field-supplies', 'remembered merchant is filed without review');
 ok(r.txns[2].line === 'transfer', 'card payment is marked not income');
-ok(C.memoFind({ 'expense|home depot': '22' }, 'expense', 'HOME DEPOT 4410 PORT CHARLOTTE') === '22', 'merchant memory ignores store number and city');
+ok(C.memoFind({ 'expense|home depot': 'field-supplies' }, 'expense', 'HOME DEPOT 4410 PORT CHARLOTTE') === 'field-supplies', 'merchant memory ignores store number and city');
 ok(C.csvToTxns('"10/07/2026","-52.10","*","","SHELL OIL 57444"\n', 'wf.csv').txns[0].amount === 52.1, 'Wells Fargo file without a header row');
 
 /* 8. GAIA jobs: company from the WO prefix; survey jobs are own contract work; position from the field points */
@@ -84,6 +84,24 @@ const SJ = { settings: S.settings, jobs: [{ id: 'job_B-1', code: 'B-1', lat: JOB
   { id: 't3', cls: 'personal', source: 'phone', jobIds: [], start: {}, end: {}, miles: 2 }] };
 const fixed = C.refileOwnJobTrips(SJ);
 ok(fixed.length === 2 && SJ.trips[0].cls === 'business' && SJ.trips[1].cls === 'business' && SJ.trips[1].purpose === 'Boundary survey – B-1' && SJ.trips[2].cls === 'personal', 'trips filed as Employer job for own survey jobs are re-filed as business');
+
+/* 9. categories: split, mapped to Schedule C, old values still understood; a helper's classified CSV is honoured */
+ok(['software', 'dues', 'training', 'bank-fees', 'other'].every(k => C.CAT[k].line === '27a'), 'line 27a split into software, dues, training, bank fees, other');
+ok(!C.CATS.some(x => ['8', '11', '13', '16b', '20a', '20b'].includes(x.line)), 'unused Schedule C lines are not offered');
+ok(C.catOf('22', 'expense') === 'field-supplies' && C.catOf('1', 'income') === 'survey-pay' && C.catOf('27a', 'expense') === 'other' && C.catOf('vehicle') === 'vehicle', 'old line values map to categories');
+const bk2 = C.books({ settings: { rates: [] }, trips: [], txns: [
+  { date: '2026-05-01', kind: 'income', amount: 500, line: 'survey-pay' }, { date: '2026-05-01', kind: 'income', amount: 90, line: '1' },
+  { date: '2026-05-02', kind: 'expense', amount: 40, line: 'software' }, { date: '2026-05-02', kind: 'expense', amount: 10, line: 'dues' }, { date: '2026-05-02', kind: 'expense', amount: 5, line: '27a' },
+  { date: '2026-05-03', kind: 'expense', amount: 30, line: 'field-supplies' }, { date: '2026-05-03', kind: 'expense', amount: 20, line: 'tools' },
+  { date: '2026-05-04', kind: 'expense', amount: 8, line: 'tolls' }, { date: '2026-05-04', kind: 'expense', amount: 99, line: 'personal' }] }, 2026);
+ok(bk2.income === 590 && bk2.ded['27a'] === 55 && bk2.ded['22'] === 50 && bk2.ded['9'] === 8 && !('personal' in bk2.ded), 'categories add up on their Schedule C lines; personal is not deducted');
+ok(C.guessLine('GEICO *AUTO') === 'vehicle' && C.guessLine('ADOBE *CREATIVE') === 'software' && C.guessLine('HARBOR FREIGHT 123') === 'tools', 'first guesses use the categories (car insurance is covered by mileage)');
+const g = C.csvToTxns('Date,Description,Amount,line,job,note,confidence\n10/02/2026,ADOBE CREATIVE CLOUD,-21.19,software,,,high\n10/03/2026,ZELLE FROM ME LAND SURVEYING,450.00,survey-pay,B-177608,WO B-177608,high\n10/04/2026,AMAZON MKTPLACE,-35.10,tools,,,check\n10/05/2026,WALMART,-12.00,survey-pay,,,high\n', 'atlas.csv');
+ok(g.txns[0].status === 'ok' && g.txns[0].line === 'software', 'helper row with high confidence is filed');
+ok(g.txns[1].line === 'survey-pay' && g.txns[1].jobCode === 'B-177608' && g.txns[1].memo === 'WO B-177608', 'job and note columns are kept');
+ok(g.txns[2].status === 'review' && g.txns[2].line === 'tools', '"check" rows wait for review with the helper\'s suggestion');
+ok(g.txns[3].status === 'review' && g.txns[3].line !== 'survey-pay', 'a category that doesn\'t fit the money direction is ignored');
+ok(C.lineFrom('line 22') === 'field-supplies' && C.lineFrom('Software & apps') === 'software' && C.lineFrom('dues') === 'dues' && C.lineFrom('nonsense') === null, 'categories read from keys, names or line numbers');
 
 console.log(fails ? `\n${fails} check(s) failed` : '\nall checks passed');
 process.exit(fails ? 1 : 0);

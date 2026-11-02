@@ -55,6 +55,14 @@ Android redirect: package `com.ledgerstudio.app`, signature hash `yDTjVnj6whCYU2
 Survey jobs are your own contract work (1099): billTo "own", miles deductible. Setup → **Companies**: tick a company only if it
 pays your mileage; its jobs then count as employer jobs. Fallback: **Import ledger-jobs.json** (also in the claude.ai preview).
 
+## Money: categories and bank statements
+- You pick a **category** (field supplies, tools, safety gear, phone, software, dues, training, bank fees, tax prep, licenses…); each one files to its
+  Schedule C line by itself (`CATS` in `web/core.js`). Lines a one-person survey contractor doesn't use are not offered.
+- Books → **Import statement (.csv)**: any bank/card CSV. If Atlas adds the columns `line, job, note, confidence`
+  ([docs/ledger-transactions-for-atlas.md](docs/ledger-transactions-for-atlas.md)), `high` rows are filed straight away; rows already waiting for
+  review are updated, not duplicated.
+- **To review** is grouped by merchant: **File all** files them and remembers the merchant for the next statements.
+
 ## Data
 Everything is saved on the phone. Make a backup each month (Files → Backup) and keep it in OneDrive;
 the same backup restores into the claude.ai preview and the other way round.
