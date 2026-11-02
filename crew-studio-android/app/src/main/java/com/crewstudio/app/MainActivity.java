@@ -93,7 +93,10 @@ public class MainActivity extends Activity {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest req) {
                 Uri u = req.getUrl();
-                if ("appassets.androidplatform.net".equals(u.getHost())) return false;
+                String h = u.getHost() == null ? "" : u.getHost();
+                if ("appassets.androidplatform.net".equals(h)) return false;
+                // Microsoft sign-in for OneDrive stays inside the app, so it can come back with the code
+                if (h.matches("(.+\\.)?(login\\.microsoftonline\\.com|login\\.live\\.com|account\\.live\\.com|login\\.microsoft\\.com|account\\.microsoft\\.com|logincdn\\.msftauth\\.net)")) return false;
                 try { startActivity(new Intent(Intent.ACTION_VIEW, u)); } catch (ActivityNotFoundException e) { /* nothing can open it */ }
                 return true; // maps and other links open in their own apps
             }
