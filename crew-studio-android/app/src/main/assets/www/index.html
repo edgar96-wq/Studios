@@ -246,6 +246,7 @@ input:disabled,select:disabled{background:var(--paper-2);color:var(--muted)}
 .check p{margin:0;font-size:13px}
 .cards{display:flex;flex-direction:column;gap:10px}
 .card{position:relative;display:grid;grid-template-columns:38px minmax(0,1fr) auto;gap:12px;align-items:center;background:#fff;border:1px solid var(--paper-3);border-radius:14px;padding:12px 14px;box-shadow:0 1px 2px rgba(40,20,50,.05)}
+.card.past{opacity:.82}
 .card.cur{border-color:transparent;box-shadow:0 0 0 1.5px var(--gold),0 6px 18px rgba(59,29,82,.12)}
 .ord{width:34px;height:34px;border-radius:50%;background:var(--paper-2);display:grid;place-items:center;font:600 15px var(--font-data);color:var(--muted)}
 .card.cur .ord{background:linear-gradient(180deg,#4b2868,#331747);color:#f5e6b8}
@@ -357,7 +358,7 @@ body.phone .tab .xs{display:inline}body.phone .tab .s.rev{display:none}
    Crew Studio — field notes, GPS shots, photos and checks.
    Single file. Data stays on this device (browser storage).
    ================================================================ */
-const VERSION = '0.8.5';
+const VERSION = '0.8.6';
 const KEY = 'surveyorStudio.v1';
 const D2R = Math.PI / 180, USFT = 3937 / 1200;
 const $ = (s, r = document) => r.querySelector(s);
@@ -590,7 +591,7 @@ const PDB = {
 
 /* ---------------- UI state ---------------- */
 const U = {
-  tab: 'today', mode: 'pen', type: 'wall', sel: null, panel: null, penSeen: false,
+  tab: 'today', mode: 'pen', type: 'wall', sel: null, panel: null, penSeen: false, todayOpen: { later: true, earlier: false, done: false },
   panelMin: (() => { try { const v = localStorage.getItem('crew.panelMin'); return v == null ? innerWidth < 600 : v === '1'; } catch (e) { return innerWidth < 600; } })(),
   snap: { ang: true, end: true, tan: true },
   undo: {}, redo: {}, prompted: new Set(),
@@ -1623,6 +1624,22 @@ const ra = (href, label, ic, title) => `<a class="ri" href="${esc(href)}" target
 const mi = (act, ic, title, o = {}) => `<button class="mi${o.on ? ' on' : ''}" data-act="${act}" title="${esc(title)}" aria-label="${esc(title)}"${o.dis ? ' disabled' : ''}>${icon(ic)}</button>`;
 const pair = (a, b) => `<div class="pair">${a}${b}</div>`;
 const SEP = '<div class="rs"></div>';
+/* which day a job is for: the office's schedule date in job.json when it has one, else the day it came onto this phone
+   (moved to today with one tap). Started or closed today also counts as today. */
+function isoDay(x) {
+  if (!x) return null; const t = String(x).trim(); let m = t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/); if (m) return `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}`;
+  m = t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/); if (m) return `${m[3].length === 2 ? '20' + m[3] : m[3]}-${m[1].padStart(2, '0')}-${m[2].padStart(2, '0')}`; return null;
+}
+function recDay(rec) { const w = rec.wo || {}, sc = rec.schedule || {}; for (const x of [sc.date, sc.day, rec.scheduled_date, rec.scheduled_for, rec.scheduled, rec.field_date, w.scheduled, w.scheduled_date, w.field_date]) { const d = isoDay(x); if (d) return d; } return null; }
+const fmtDay = d => { const t = new Date(d + 'T12:00:00'); return isNaN(t) ? d : t.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }); };
+function jobDay(j) { return j.day || (j.log && j.log[0] && j.log[0].t ? dayLocal(j.log[0].t) : null); }
+function jobWhen(j, today = dayLocal()) {
+  if ((j.startedAt && dayLocal(j.startedAt) === today) || (j.closedAt && dayLocal(j.closedAt) === today)) return 'today';
+  const d = jobDay(j); if (!d || d === today) return j.status === 'closed' && d !== today ? 'done' : 'today';
+  if (d > today) return j.status === 'closed' ? 'done' : 'later';
+  return j.status === 'closed' ? 'done' : 'earlier';
+}
+const todayJobs = () => { const t = dayLocal(); return S.jobs.filter(j => jobWhen(j, t) === 'today'); };
 function mapsRoute(jobs) {
   const stops = jobs.filter(j => j.status !== 'closed' && j.address).map(j => j.address);
   if (!stops.length) return null;
@@ -1634,9 +1651,9 @@ function typeShort(t) { return t === 'text' ? 'Text' : t.startsWith('m:') ? 'Mon
 function photoCount(j, cat) { return j ? j.photos.filter(p => p.cat === cat).length : 0; }
 const RAILS = {
   today() {
-    const url = mapsRoute(S.jobs);
+    const url = mapsRoute(todayJobs()); // today's open jobs only, in their order
     const gf = (gset().found || []).length;
-    return [ri('job-add', 'Add job', 'plus') + ri('gaia-check', U.gaiaSpin ? 'Checking…' : 'OneDrive', 'cloud', { badge: gf || '', badgeCls: 'warn', title: 'Check for new work in OneDrive GAIA/Jobs' }) + ri('wo-import', 'CSV', 'import', { title: 'Import work orders from a CSV file (fallback)' }) + (url ? ra(url, 'Route', 'route', 'Open the open jobs in Google Maps, in this order') : ri('nav-none', 'Route', 'route', { dis: true })),
+    return [ri('job-add', 'Add job', 'plus') + ri('gaia-check', U.gaiaSpin ? 'Checking…' : 'OneDrive', 'cloud', { badge: gf || '', badgeCls: 'warn', title: 'Check for new work in OneDrive GAIA/Jobs' }) + ri('wo-import', 'CSV', 'import', { title: 'Import work orders from a CSV file (fallback)' }) + (url ? ra(url, 'Route', 'route', "Open today's open jobs in Google Maps, in this order") : ri('nav-none', 'Route', 'route', { dis: true })),
     ri('backup', 'Back up', 'save') + ri('restore', 'Restore', 'import') + ri('settings', 'Settings', 'gear')];
   },
   notes() {
@@ -1824,24 +1841,38 @@ function renderHint() {
 /* ---------------- Today ---------------- */
 const STAT = { planned: ['Planned', ''], active: ['In progress', 'plum'], closed: ['Closed', 'good'] };
 function renderToday() {
-  const d = new Date(), open = S.jobs.filter(j => j.status !== 'closed').length;
-  let h = `<div class="doc"><div class="row" style="justify-content:space-between;align-items:baseline"><h2>Today · ${d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</h2><span class="muted num">${S.jobs.length} jobs · ${open} open</span></div>`;
+  const d = new Date(), tj = todayJobs(), open = tj.filter(j => j.status !== 'closed').length;
+  let h = `<div class="doc"><div class="row" style="justify-content:space-between;align-items:baseline"><h2>Today · ${d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</h2><span class="muted num">${tj.length} today · ${open} open</span></div>`;
   { const g = gset(), f = g.found || [], on = g.source === 'folder' ? !!FolderStore.root : msConnected(), pend = S.jobs.filter(x => x.gaia && x.gaia.pending).length;
     h = h.replace('<div class="doc">', '<div class="doc"><div class="pullhint" style="height:0;overflow:hidden;text-align:center;font:600 12px var(--font-data);color:var(--muted);transition:height .15s"></div>');
     h += `<div class="sheet row" style="justify-content:space-between;gap:8px;padding:8px 12px;margin-bottom:8px"><span style="font-size:13px;display:flex;align-items:center;gap:6px;min-width:0"><span style="width:18px;height:18px;flex:0 0 18px;display:inline-flex;color:var(--plum)">${icon('cloud')}</span><span>${on ? `<b>${esc(gaiaStore().label())}</b>${g.lastCheck ? ` <span class="muted">· checked ${esc(fmtTime(g.lastCheck))}</span>` : ''}${U.gaiaNote === 'offline' ? ' <span class="chip warn">no signal · last copy</span>' : U.gaiaNote === 'denied' ? ' <span class="chip warn">permission refused</span>' : U.gaiaNote === 'nofolder' ? ' <span class="chip warn">no GAIA/Jobs folder</span>' : ''}${pend ? ` <span class="chip warn">${pend} to send</span>` : ''}` : NMS && g.linked ? '<b>Signed out of OneDrive</b>' : 'OneDrive not connected'}</span></span><span class="row" style="gap:6px"><button class="btn small${on ? '' : ' primary'}" data-act="${on ? 'gaia-check' : 'gaia-setup'}">${on ? (U.gaiaSpin ? 'Checking…' : 'Check for new work') : 'Connect OneDrive'}</button></span></div>`;
     if (f.length) h += `<div class="sheet" style="padding:6px 12px;margin-bottom:8px">${f.map((x, i) => { const d = woToJob(x.rec || {}); return `<div class="row" style="justify-content:space-between;gap:8px;padding:5px 0${i ? ';border-top:1px solid var(--plum-line)' : ''}"><span style="min-width:0;font-size:13px"><b style="color:var(--plum)">${x.kind === 'new' ? 'New' : 'Changed'}: ${esc(x.id)}</b><br><span class="muted">${esc(d.address || 'no address')}${x.kind === 'changed' && x.diff ? ' · office changed ' + esc(x.diff.map(k => (WO_FIELDS.find(w => w[0] === k) || [k, k])[1]).join(', ')) : ''}</span></span><button class="btn small primary" data-act="gaia-take:${i}">${x.kind === 'new' ? 'Import' : 'Update'}</button></div>`; }).join('')}${f.length > 1 ? `<div class="row" style="justify-content:flex-end;padding-top:4px"><button class="btn small" data-act="gaia-take:all">Import / update all ${f.length}</button></div>` : ''}</div>`; }
   if (!S.jobs.length) h += `<div class="sheet"><p><b>No jobs yet.</b> Add a job from its work order, or import the day's work orders from a CSV file (columns: job, address, client, lot, block, subdivision, plat book, page, due).</p></div>`;
-  h += '<div class="cards">';
-  S.jobs.forEach((j, i) => {
-    const [st, cls] = STAT[j.status] || STAT.planned;
-    const meta = [j.lot && 'Lot ' + j.lot, j.block && 'Block ' + j.block, j.subdivision, j.platBook && `PB ${j.platBook}${j.page ? ' / PG ' + j.page : ''}`, j.due && 'Due ' + j.due].filter(Boolean).map(esc).join(' · ');
-    h += `<article class="card${j.id === S.activeJobId ? ' cur' : ''}"><div class="ord">${i + 1}</div><div style="min-width:0"><div class="cno">${esc(j.no || '(no job no.)')} <span class="chip ${cls}">${st}</span>${j.demo ? '<span class="chip">Example</span>' : ''}</div><div class="caddr">${esc(j.address || 'No address')}</div><div class="cmeta">${meta || '&nbsp;'}</div></div>
+  const today = dayLocal(), groups = { today: [], later: [], earlier: [], done: [] };
+  S.jobs.forEach(j => groups[jobWhen(j, today)].push(j));
+  const card = (j, i, list, grp) => {
+    const [st, cls] = STAT[j.status] || STAT.planned, d = jobDay(j);
+    const meta = [j.lot && 'Lot ' + j.lot, j.block && 'Block ' + j.block, j.subdivision, j.platBook && `PB ${j.platBook}${j.page ? ' / PG ' + j.page : ''}`, j.due && 'Due ' + j.due, grp !== 'today' && d && (grp === 'later' ? 'For ' : 'From ') + fmtDay(d)].filter(Boolean).map(esc).join(' · ');
+    return `<article class="card${j.id === S.activeJobId ? ' cur' : ''}${grp === 'earlier' || grp === 'done' ? ' past' : ''}"><div class="ord">${i + 1}</div><div style="min-width:0"><div class="cno">${esc(j.no || '(no job no.)')} <span class="chip ${cls}">${st}</span>${j.demo ? '<span class="chip">Example</span>' : ''}</div><div class="caddr">${esc(j.address || 'No address')}</div><div class="cmeta">${meta || '&nbsp;'}</div></div>
       <div class="cact">${j.status === 'planned' ? `<button class="btn primary small" data-act="start:${j.id}">${icon('play')}Start</button>` : `<button class="btn small" data-act="open:${j.id}">Open</button>`}
       ${j.address ? `<a class="btn small" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(j.address)}" target="_blank" rel="noopener">${icon('route')}Map</a>` : ''}
-      <button class="btn small" data-act="up:${j.id}" aria-label="Move up"${i === 0 ? ' disabled' : ''}>${icon('up')}</button><button class="btn small" data-act="down:${j.id}" aria-label="Move down"${i === S.jobs.length - 1 ? ' disabled' : ''}>${icon('down')}</button>
+      ${grp !== 'today' && j.status !== 'closed' ? `<button class="btn small" data-act="to-today:${j.id}" title="Do this job today">${icon('up')}Today</button>` : ''}
+      ${grp === 'today' || grp === 'later' ? `<button class="btn small" data-act="up:${j.id}" aria-label="Move up"${i === 0 ? ' disabled' : ''}>${icon('up')}</button><button class="btn small" data-act="down:${j.id}" aria-label="Move down"${i === list.length - 1 ? ' disabled' : ''}>${icon('down')}</button>` : ''}
       <button class="btn small danger" data-act="del:${j.id}" aria-label="Remove job">${icon('trash')}</button></div></article>`;
-  });
-  h += '</div><p class="muted" style="font-size:12.5px">Route opens the open jobs in Google Maps in this order (up to 10 stops). Reorder with the arrows.</p></div>';
+  };
+  const section = (grp, title, note, fold) => {
+    const list = groups[grp]; if (!list.length) return '';
+    const open = !fold || U.todayOpen[grp];
+    return `<div class="row" style="justify-content:space-between;align-items:baseline;margin:${grp === 'today' ? '4px' : '16px'} 0 6px"><h3 style="margin:0">${title} <span class="muted num" style="font-size:13px">${list.length}</span></h3>${fold ? `<button class="btn small" data-act="today-fold:${grp}">${open ? 'Hide' : 'Show'}</button>` : ''}</div>`
+      + (note ? `<p class="muted" style="font-size:12.5px;margin:0 0 6px">${note}</p>` : '')
+      + (open ? `<div class="cards">${list.map((j, i) => card(j, i, list, grp)).join('')}</div>` : '');
+  };
+  h += section('today', "Today's jobs", groups.today.length ? 'Route opens these in Google Maps in this order (up to 10 stops). Reorder with the arrows.' : '', false);
+  if (!groups.today.length && S.jobs.length) h += `<div class="sheet"><p style="margin:0"><b>No jobs for today.</b> Check OneDrive for new work, or tap <b>Today</b> on a job below to do it today.</p></div>`;
+  h += section('later', 'Coming up', '', true);
+  h += section('earlier', 'Earlier, not marked done', 'From past days and still open. Close them when finished, or tap Today to do one again today.', true);
+  h += section('done', 'Done', '', true);
+  h += '</div>';
   $('#vToday').innerHTML = h;
 }
 
@@ -5204,8 +5235,8 @@ function gaiaTake(items) {
   let n = 0, kept = [];
   for (const x of items) {
     const d = woToJob(x.rec); d.no = d.no || x.id; const access = d.access; delete d.access;
-    if (x.kind === 'new' && !gaiaJobOf(x.id)) { const j = newJob(d); j.access = access; j.gaia = { id: x.id, etag: x.etag, status: x.rec.status || '', base: Object.assign({}, d) }; j.log = [{ t: nowISO(), m: `Imported from OneDrive ${GAIA_ROOT}/${x.id} (status ${x.rec.status || '—'})` }]; S.jobs.push(j); n++; }
-    else { const j = gaiaJobOf(x.id); if (!j) continue; const m = gaiaMerge(j, d, x.rec, x.etag); j.access = access; logJ(j, `Work order updated from OneDrive${m.took.length ? ': ' + m.took.join(', ') : ''}${m.kept.length ? ' · kept yours: ' + m.kept.join(', ') : ''}`); if (m.kept.length) kept.push(`${x.id}: ${m.kept.join(', ')}`); n++; }
+    if (x.kind === 'new' && !gaiaJobOf(x.id)) { const j = newJob(d); j.access = access; j.day = recDay(x.rec) || dayLocal(); j.gaia = { id: x.id, etag: x.etag, status: x.rec.status || '', base: Object.assign({}, d) }; j.log = [{ t: nowISO(), m: `Imported from OneDrive ${GAIA_ROOT}/${x.id} (status ${x.rec.status || '—'})` }]; S.jobs.push(j); n++; }
+    else { const j = gaiaJobOf(x.id); if (!j) continue; const m = gaiaMerge(j, d, x.rec, x.etag); j.access = access; const rd = recDay(x.rec); if (rd) j.day = rd; /* the office rescheduled it */ logJ(j, `Work order updated from OneDrive${m.took.length ? ': ' + m.took.join(', ') : ''}${m.kept.length ? ' · kept yours: ' + m.kept.join(', ') : ''}`); if (m.kept.length) kept.push(`${x.id}: ${m.kept.join(', ')}`); n++; }
     gset().found = (gset().found || []).filter(y => y.id !== x.id);
   }
   if (!S.activeJobId && S.jobs[0]) S.activeJobId = S.jobs[0].id;
@@ -5309,7 +5340,7 @@ function gaiaPull(el) {
    the widget reads only that file. The phone's background check (5:30 AM, then hourly on a network) adds a "remote" part. ---- */
 let todayT = 0, todaySent = '';
 function todayData() {
-  const g = gset(), open = S.jobs.filter(j => j.status !== 'closed');
+  const g = gset(), open = todayJobs().filter(j => j.status !== 'closed');
   const on = g.source === 'folder' ? !!FolderStore.root : msConnected();
   const state = !on ? ((NMS ? g.linked : g.clientId) || g.source === 'folder' ? 'signin' : 'off') : navigator.onLine === false ? 'offline' : 'ok';
   const known = {}; for (const j of S.jobs) if (j.gaia && j.gaia.id) known[j.gaia.id] = j.gaia.etag || ''; for (const f of g.found || []) known[f.id] = f.etag || '';
@@ -5318,7 +5349,7 @@ function todayData() {
     sync: { state, last: g.lastCheck || null, pending: S.jobs.filter(x => x.gaia && x.gaia.pending).length, found: (g.found || []).length },
     count: open.length,
     jobs: open.slice(0, 12).map(j => ({ id: j.id, no: j.no || '', address: j.address || '', due: j.due || '', status: j.status })),
-    route: mapsRoute(S.jobs), ledger: (S.settings.ledgerPkg || '').trim() || 'com.ledgerstudio.app',
+    route: mapsRoute(todayJobs()), ledger: (S.settings.ledgerPkg || '').trim() || 'com.ledgerstudio.app',
     gaia: { root: GAIA_ROOT, open: GAIA_OPEN, known },
   };
 }
@@ -5540,7 +5571,12 @@ function onAct(act) {
     case 'settings': return settingsDialog();
     case 'start': return startJob(S.jobs.find(x => x.id === arg));
     case 'open': { const jj = S.jobs.find(x => x.id === arg); S.activeJobId = jj.id; U.sel = null; U.gpsSel = null; U.platSel = null; closeLen(true); save(); U.tab = null; return switchTab('notes'); }
-    case 'up': case 'down': { const i = S.jobs.findIndex(x => x.id === arg), k = a === 'up' ? i - 1 : i + 1; if (k < 0 || k >= S.jobs.length) return; [S.jobs[i], S.jobs[k]] = [S.jobs[k], S.jobs[i]]; save(); render(); return; }
+    case 'up': case 'down': { // within its own group (today's jobs move among today's jobs)
+      const i = S.jobs.findIndex(x => x.id === arg); if (i < 0) return; const g0 = jobWhen(S.jobs[i]), st = a === 'up' ? -1 : 1;
+      let k = i + st; while (k >= 0 && k < S.jobs.length && jobWhen(S.jobs[k]) !== g0) k += st; if (k < 0 || k >= S.jobs.length) return;
+      [S.jobs[i], S.jobs[k]] = [S.jobs[k], S.jobs[i]]; save(); render(); return; }
+    case 'to-today': { const j2 = S.jobs.find(x => x.id === arg); if (!j2) return; j2.day = dayLocal(); S.jobs.splice(S.jobs.indexOf(j2), 1); const t = todayJobs(), at = t.length ? S.jobs.indexOf(t[t.length - 1]) + 1 : 0; S.jobs.splice(at, 0, j2); /* last on today's list */ logJ(j2, 'Moved to today'); save(); render(); toast(`${j2.no || 'Job'} is on today's list.`, 'good', 2500); return; }
+    case 'today-fold': U.todayOpen[arg] = !U.todayOpen[arg]; return render();
     case 'del': { const jj = S.jobs.find(x => x.id === arg); return modal({ title: `Remove ${jj.no || 'this job'}?`, body: `<p>${jj.points.length} shots, ${jj.elements.length} sketch items and ${jj.photos.length} photos will be removed from this device. Export or back up first if you need them.</p>`, actions: [{ label: 'Cancel' }, { label: 'Remove', kind: 'danger', onClick: async () => { for (const ph of jj.photos) await PDB.del(jj.id + '/' + ph.id); S.jobs = S.jobs.filter(x => x !== jj); if (S.activeJobId === jj.id) S.activeJobId = S.jobs[0] ? S.jobs[0].id : null; save(); render(); } }] }); }
     case 'frame': return frameDialog();
     case 'fly-types': return toggleFly('types', act);
