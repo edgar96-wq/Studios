@@ -357,7 +357,7 @@ body.phone .tab .xs{display:inline}body.phone .tab .s.rev{display:none}
    Crew Studio — field notes, GPS shots, photos and checks.
    Single file. Data stays on this device (browser storage).
    ================================================================ */
-const VERSION = '0.8.3';
+const VERSION = '0.8.4';
 const KEY = 'surveyorStudio.v1';
 const D2R = Math.PI / 180, USFT = 3937 / 1200;
 const $ = (s, r = document) => r.querySelector(s);
@@ -485,7 +485,7 @@ const MON_TYPES = ['FIR', 'FIP', 'FND', 'FN', 'FD', 'CM'];
 const MON_ID = new Set(['FIR', 'FND', 'CM']);
 const MON_PICK = [['FIR', 'Found iron rod'], ['FIP', 'Found iron pipe'], ['FND', 'Found nail & disk'], ['FN', 'Found nail'], ['FD', 'Found drill hole'], ['CM', 'Concrete monument'], ['PK', 'PK nail'], ['SET', 'Set iron rod & cap'], ['NF', 'Not found']];
 const MON_SIZES = ['1/2"', '5/8"', '3/4"', '1"', '2"'];
-const monLabel = m => m === 'SET' ? 'SET IR&C' : m === 'NF' ? 'NOT FOUND' : m;
+const monLabel = m => m === 'SET' ? 'SET IR&C' : m === 'NF' ? 'NOT FOUND' : m === 'MON' ? 'Monument' : m;
 const AREA_OPTS = {
   roof: { head: 'Roofed area', opts: ['BRICK', 'CONCRETE', 'TILE', 'WOOD TILE'], line1: 'ROOFED' },
   screen: { head: 'Screened area', opts: ['BRICK', 'CONCRETE', 'TILE', 'WOOD TILE', 'POOL', 'POOL & SPA'], line1: 'SCREENED' },
@@ -1094,6 +1094,7 @@ function snapCands(j) {
   for (const el of j.elements) {
     if (!el.pts) continue; const n = el.pts.length;
     el.pts.forEach((p, i) => {
+      const bp = el.bul && el.bul[(i - 1 + n) % n], bn = el.bul && el.bul[i]; if ((el.closed || (i > 0 && i < n - 1)) && bp && bn) return; // a joint inside a smooth curve is not a corner to snap to
       let dir = null;
       if (!el.closed && n >= 2 && (i === 0 || i === n - 1)) {
         const s = i === 0 ? { a: el.pts[1], b: el.pts[0], bul: -((el.bul && el.bul[0]) || 0) } : { a: el.pts[n - 2], b: el.pts[n - 1], bul: (el.bul && el.bul[n - 2]) || 0 };
@@ -1171,7 +1172,45 @@ function extendEnd(j, prev, end, k) {
   }
   return best ? best.q : null;
 }
+/** freehand for everything but buildings: a smooth curve that follows the stroke (arcs joined tangent to each other, biarcs),
+ *  or a straight line when the stroke is straight. Never a string of little segments. */
+function splineFit(P, T, k, j) {
+  let path = 0; for (let i = 1; i < P.length; i++) path += V.dist(P[i - 1], P[i]);
+  P = P.slice(); const chord0 = V.dist(P[0], P[P.length - 1]);
+  const closed = !!T.closable && P.length > 6 && chord0 < Math.max(22 / k, path * 0.1);
+  let startSnap = null, endSnap = false;
+  if (!closed && U.snap.end) { const s0 = snapPt(j, P[0]); if (s0.kind) { P[0] = s0.p; startSnap = s0; } const s1 = snapPt(j, P[P.length - 1]); if (s1.kind) { P[P.length - 1] = s1.p; endSnap = true; } }
+  const A = P[0], B = P[P.length - 1], chord = V.dist(A, B);
+  if (!closed) { let mx = 0; for (const p of P) mx = Math.max(mx, distPtSeg(p, A, B).d); if (mx < Math.max(0.025 * chord, 3 / k)) return { pts: [A, B].map(r2), bul: [0], closed: false, axis: 0, kind: 'line', endSnap }; }
+  // knots along the stroke, then a direction at each knot
+  const keep = rdp(P.map((p, i) => [p[0], p[1], i]), 9 / k), idx = keep.map(q => q[2]); if (closed) idx.pop();
+  if (idx.length < 2) return null;
+  const K = idx.map(i => P[i]), n = K.length, at = (i, sgn) => { let acc = 0, a = i; const lim = Math.max(3 / k, Math.min(chord || path, path) / 8); while (acc < lim) { const b = a + sgn; if (b < 0 || b >= P.length) break; acc += V.dist(P[a], P[b]); a = b; } return P[a]; };
+  const tans = K.map((q, t) => {
+    if (closed) return V.norm(V.sub(K[(t + 1) % n], K[(t - 1 + n) % n]));
+    if (t === 0) return startSnap && startSnap.dir && U.snap.tan ? (V.dot(startSnap.dir, V.sub(at(0, 1), A)) >= 0 ? startSnap.dir : V.mul(startSnap.dir, -1)) : V.norm(V.sub(at(0, 1), A));
+    if (t === n - 1) return V.norm(V.sub(B, at(P.length - 1, -1)));
+    return V.norm(V.sub(K[t + 1], K[t - 1]));
+  });
+  const pts = [], bul = [], m = closed ? n : n - 1;
+  for (let t = 0; t < m; t++) {
+    const P0 = K[t], P1 = K[(t + 1) % n], T0 = tans[t], T1 = tans[(t + 1) % n], v = V.sub(P1, P0), L = V.len(v);
+    pts.push(P0); if (L < 1e-6) continue;
+    const u = V.mul(v, 1 / L);
+    if (Math.abs(V.cross(u, T0)) < 0.035 && Math.abs(V.cross(u, T1)) < 0.035) { bul.push(0); continue; } // straight piece
+    const tt = V.add(T0, T1), den = 2 * (1 - V.dot(T0, T1)), vt = V.dot(v, tt), vv = V.dot(v, v);
+    let d = den < 1e-6 ? (Math.abs(V.dot(v, T1)) > 1e-6 ? vv / (4 * V.dot(v, T1)) : NaN) : (-vt + Math.sqrt(vt * vt + den * vv)) / den;
+    if (!(d > 0) || d > L * 3) { bul.push(Math.max(-3, Math.min(3, bulgeForTan(P0, P1, 'a', T0)))); continue; } // fall back to one arc
+    const Pm = V.mul(V.add(V.add(P0, V.mul(T0, d)), V.sub(P1, V.mul(T1, d))), 0.5);
+    const b1 = bulgeForTan(P0, Pm, 'a', T0), b2 = bulgeForTan(Pm, P1, 'b', V.mul(T1, -1));
+    pts.push(Pm); bul.push(Math.abs(b1) < 1e-3 ? 0 : b1, Math.abs(b2) < 1e-3 ? 0 : b2);
+  }
+  if (!closed) pts.push(K[n - 1]);
+  if (pts.length < 2) return null;
+  return { pts: pts.map(r2), bul: bul.map(b => isFinite(b) ? b : 0), closed, axis: 0, kind: closed ? 'closed curve' : 'curve', endSnap };
+}
 function recognize(P, T, k, j) {
+  if (T.cat !== 'Building') { const sp = splineFit(P, T, k, j); if (sp) return sp; }
   const tol = 7 / k; let path = 0; for (let i = 1; i < P.length; i++) path += V.dist(P[i - 1], P[i]);
   const A = P[0], B = P[P.length - 1], chord = V.dist(A, B);
   const nearClose = !!T.closable && P.length > 4 && chord < Math.max(22 / k, path * 0.1);
@@ -1185,23 +1224,6 @@ function recognize(P, T, k, j) {
         let ss = 0, mx = 0; for (const p of P) { const e = V.dist(p, cf.c) - cf.r; ss += e * e; mx = Math.max(mx, Math.abs(e)); }
         if (Math.sqrt(ss / P.length) < Math.max(0.1 * cf.r, 4 / k) && (T.cat !== 'Surfaces' || mx < Math.max(0.12 * cf.r, 5 / k))) { /* surfaces: a line running into a curve is not one big arc */ kind = 'arc'; pts = [A, B]; bul = [Math.tan(sweepThrough(cf.c, A, P[Math.floor(P.length / 2)], B) / 4)]; }
       }
-    }
-  }
-  if (kind !== 'arc' && T.cat === 'Surfaces' && !nearClose) { // a curved walk or edge: a few arcs that follow the stroke, not a jagged polyline
-    const fine = rdp(P, 3 / k); let sharp = false;
-    for (let i = 1; i < fine.length - 1; i++) { const d1 = V.sub(fine[i], fine[i - 1]), d2 = V.sub(fine[i + 1], fine[i]); if (V.len(d1) > 4 / k && V.len(d2) > 4 / k && Math.abs(angBetween(d1, d2)) > 40 * D2R) { sharp = true; break; } }
-    let maxDev = 0; for (const p of P) maxDev = Math.max(maxDev, distPtSeg(p, A, B).d);
-    if (!sharp && maxDev > Math.max(0.08 * chord, 6 / k)) {
-      const idx = [0]; { const keep = rdp(P.map((p, i) => [p[0], p[1], i]), 14 / k); for (let t = 1; t < keep.length; t++) idx.push(keep[t][2]); }
-      const cp = [], cb = [];
-      for (let t = 0; t + 1 < idx.length; t++) {
-        const i0 = idx[t], i1 = idx[t + 1], a = P[i0], b = P[i1]; cp.push(a); let dv = 0, im = i0;
-        for (let i = i0; i <= i1; i++) { const d = distPtSeg(P[i], a, b).d; if (d > dv) { dv = d; im = i; } }
-        let bu = 0; if (dv > 2.5 / k && i1 - i0 >= 3) { bu = arcBulge(a, b, P[im]); if (!isFinite(bu) || Math.abs(bu) > 3) bu = 0; }
-        cb.push(bu);
-      }
-      cp.push(P[P.length - 1]);
-      if (cp.length >= 2) { kind = cb.some(x => x) ? 'curve' : 'polyline'; pts = cp; bul = cb; }
     }
   }
   if (kind !== 'arc' && kind !== 'curve') {
@@ -1607,8 +1629,8 @@ function mapsRoute(jobs) {
   const dest = stops[stops.length - 1], way = stops.slice(0, -1).slice(0, 9);
   return 'https://www.google.com/maps/dir/?api=1&travelmode=driving&destination=' + encodeURIComponent(dest) + (way.length ? '&waypoints=' + encodeURIComponent(way.join('|')) : '');
 }
-function typeLabel(t) { return t === 'text' ? 'Text note' : t.startsWith('m:') ? (MON_PICK.find(x => x[0] === t.slice(2)) || [0, 'Monument'])[1] : t.startsWith('u:') ? UT[t.slice(2)].l : TY[t].l; }
-function typeShort(t) { return t === 'text' ? 'Text' : t.startsWith('m:') ? monLabel(t.slice(2)) : t.startsWith('u:') ? (UT[t.slice(2)].code || t.slice(2)) : (TY[t].s || TY[t].l); }
+function typeLabel(t) { return t === 'text' ? 'Text note' : t.startsWith('m:') ? 'Monument' : t.startsWith('u:') ? UT[t.slice(2)].l : TY[t].l; }
+function typeShort(t) { return t === 'text' ? 'Text' : t.startsWith('m:') ? 'Monument' : t.startsWith('u:') ? (UT[t.slice(2)].code || t.slice(2)) : (TY[t].s || TY[t].l); }
 function photoCount(j, cat) { return j ? j.photos.filter(p => p.cat === cat).length : 0; }
 const RAILS = {
   today() {
@@ -1702,7 +1724,7 @@ function drawSwatch(cv, t) {
   const sc = w / 46;
   if (t === 'text') { ctx.fillStyle = P.text; ctx.font = `600 ${11 * sc}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('Aa', w / 2, h / 2); return; }
   if (t.startsWith('u:')) { drawUtilSym(ctx, UT[t.slice(2)], [w / 2, h / 2], 0, P, sc * 0.75); return; }
-  if (t.startsWith('m:')) { drawMonSym(ctx, t.slice(2), [w / 2, h / 2], P, sc * 0.9); return; }
+  if (t.startsWith('m:')) { drawMonSym(ctx, 'FIR', [w / 2, h / 2], P, sc * 0.9); return; }
   const T = TY[t]; ctx.strokeStyle = P[T.col]; ctx.lineWidth = Math.max(2, T.w * sc * 0.8); ctx.setLineDash(T.dash ? T.dash.map(x => x * sc * 0.7) : []);
   ctx.beginPath(); ctx.moveTo(w * 0.14, h * 0.75); ctx.lineTo(w * 0.86, h * 0.25); ctx.stroke(); ctx.setLineDash([]);
 }
@@ -1716,7 +1738,7 @@ const FLY = {
       + grp('Building', ['wall', 'shed', 'roofed', 'screen', 'steps', 'equip'], 'areas ask for their floor or label when they close')
       + grp('Surfaces', ['conc', 'drive', 'walk', 'brick', 'tile', 'slab', 'deck', 'pool', 'asph'])
       + grp('Fences & walls', ['clf', 'wdf', 'irf', 'cbs', 'seawall', 'dock'])
-      + `<h4>Monuments<small>tap a lot corner, or where it was found</small></h4><div class="tgrid">${MON_PICK.map(([k, l]) => btn('m:' + k, monLabel(k), l)).join('')}</div>`
+      + `<h4>Monuments<small>tap a lot corner, or where it was found; then say which one</small></h4><div class="tgrid">${btn('m:MON', 'Monument', 'Monument: FIR, FIP, FND, CM… chosen when you place it')}</div>`
       + `<h4>Utility points<small>tap to place</small></h4><div class="tgrid">${UTILS.filter(u => !u.old).map(u => btn('u:' + u.k, u.code || u.k, u.l)).join('')}${btn('text', 'Text', 'Text note')}</div>`;
   },
   snap() {
@@ -1771,7 +1793,7 @@ function positionFly() {
 /* ---------------- hint pill ---------------- */
 const HINTS = {
   select: 'Tap a line, then drag its middle: a line moves square to itself, a curve bends (joined lines stay). Drag a curve\'s end to slide it along its line. Tap a lot corner for its monument. Tap more lines for parallel, perpendicular, tangent.',
-  pen: 'Freehand: lines snap square, curves become arcs (a curved walk becomes a few smooth arcs), a shape closes when you end at its start.',
+  pen: 'Freehand: buildings and their areas snap square; everything else becomes one smooth curve that follows your stroke (straight if you drew it straight). End at the start to close it.',
   line: 'Drag from one end to the other. Ends land on nearby corners and lines.',
   poly: 'Tap each corner. Tap the first corner again to close, or press Finish.',
   rect: 'Drag from one corner to the opposite corner.',
@@ -2761,7 +2783,10 @@ function positionLen() {
   const minX = (U.railsOff || isPhoneUI() ? 0 : $('#railL').offsetWidth + 12) + 8, maxX = c.w - (U.railsOff || isPhoneUI() ? 0 : $('#railR').offsetWidth + 12) - 8 - w;
   pop.style.left = Math.max(minX, Math.min(maxX, x)) + 'px'; pop.style.top = Math.max(10, Math.min(c.h - h - (isPhoneUI() ? 140 : 56), y)) + 'px';
 }
-function closeLen(silent) { const had = !!U.len; U.len = null; $('#lenPop').hidden = true; if (had && !silent) redraw(); }
+function closeLen(silent) {
+  const had = U.len; U.len = null; $('#lenPop').hidden = true; if (had && !silent) redraw();
+  if (had && had.flow && silent) { const j = job(), el = j && j.elements.find(e => e.id === had.el); if (el && isAreaType(el.type)) setTimeout(() => { if (!U.mini && !U.len) checkArea(j, el); }, 400); } // the crew went on drawing: still offer the area if it closed
+}
 function readLen(id) { const x = $('#' + id); if (!x) return null; const v = x.value.trim(); if (v === '') return null; const n = parseFloat(v.replace(',', '.')); return (isFinite(n) && n > 0 && n < 5000) ? Math.round(n * 100) / 100 : NaN; }
 function lenAccept() {
   const j = job(), L = U.len; if (!L || !editable(j)) return; const el = j.elements.find(e => e.id === L.el); if (!el) return closeLen();
@@ -2992,7 +3017,11 @@ const wsPt = w => U.vn.toS(w);
 /* monuments: a lot corner gets its record (found / set / not found, size, cap); anywhere else a monument mark */
 function monTap(j, sp, w, kind) {
   if (!editable(j)) return;
-  if (j.frame) { const hc = hitNotes(j, sp, { corners: true, tol: 22 }); if (hc && hc.corner) return cornerPop(j, hc.corner.name, kind); }
+  // tapping a monument already there opens it; a lot corner opens its record; anywhere else places a new one
+  const ex = j.elements.filter(e => e.type === 'mon').map(e => ({ e, d: V.dist(U.vn.toS(e.at), sp) })).filter(x => x.d < 20).sort((a, b) => a.d - b.d)[0];
+  if (ex) return monPop(j, ex.e);
+  if (!kind || kind === 'MON') kind = U.lastMon || 'FIR';
+  if (j.frame) { const hc = hitNotes(j, sp, { corners: true, tol: 22 }); if (hc && hc.corner) { const rec = cornerRec(j, hc.corner.name); return cornerPop(j, hc.corner.name, rec.status ? null : kind); } }
   pushUndo(); const el = { id: nextId(j, 'M'), type: 'mon', mon: kind, at: r2(w), size: '', cap: '' }; j.elements.push(el);
   logJ(j, `Placed ${monLabel(kind)} ${el.id}`); save(); render(); monPop(j, el);
 }
@@ -3006,7 +3035,7 @@ function monClick(cur, k, b, root, done) {
   if (k.startsWith('kind:')) { cur.kind = k.slice(5); $$('[data-mp^="kind:"]', root).forEach(x => x.classList.toggle('on', x === b)); return; }
   if (k.startsWith('size:')) { const v = k.slice(5); cur.size = cur.size === v ? '' : v; $$('[data-mp^="size:"]', root).forEach(x => x.classList.toggle('on', x === b && !!cur.size)); return; }
   if (k.startsWith('pre:')) { const inp = $('#mpCap', root); inp.value = k.slice(4); inp.focus(); return; }
-  if (k === 'ok') { cur.cap = $('#mpCap', root).value.trim().toUpperCase(); done(); }
+  if (k === 'ok') { cur.cap = $('#mpCap', root).value.trim().toUpperCase(); if (cur.kind !== 'NF') U.lastMon = cur.kind; done(); }
 }
 function cornerPop(j, name, kind) {
   const rec = cornerRec(j, name), cur = { kind: kind || (rec.status === 'notfound' ? 'NF' : rec.status === 'set' ? 'SET' : rec.type && rec.type !== 'Other' ? rec.type : 'FIR'), size: rec.size || '', cap: rec.cap || '' };
@@ -3067,7 +3096,7 @@ function polyCentroid(P) {
 }
 function elPath(el) { const out = []; for (const s of segs(el)) arcPts(s.a, s.b, s.bul).forEach((p, k) => { if (k > 0 || !out.length) out.push(p); }); if (el.closed && out.length > 1) out.pop(); return out; }
 function chainOf(j, el) {
-  const pool = j.elements.filter(e => e.pts && e.type === el.type && !e.closed && e !== el);
+  const pool = j.elements.filter(e => e.pts && e.type === el.type && !e.closed && e !== el), EPS_JOIN = Math.max(0.25, Math.min(0.6, 6 / ((U.vn && U.vn.k) || 1))); // lines that nearly meet still make one outline
   let pts = elPath(el); const members = [el.id]; let grew = true;
   while (grew) {
     grew = false;
@@ -3084,20 +3113,31 @@ function chainOf(j, el) {
   return { pts, members };
 }
 const WALL_TOL = 0.75; // an area's line counts as ending on a wall within this many feet (finger drawing)
-function onBldg(j, p, tol = EPS_JOIN, only) {
-  let best = null;
+/** outlines an area can close against: closed buildings (curved walls as their dense outline), a building drawn as separate
+ *  wall lines that meet up, and closed roofed / screened areas (a screen against the roofed porch) */
+function bldgPolys(j, skip) {
+  const out = [], used = new Set();
   for (const el of j.elements) {
-    if (!el.pts || !el.closed || !TY[el.type] || !TY[el.type].bldg || (only && el !== only) || el.bul.some(b => b)) continue; const n = el.pts.length;
+    if (!el.pts || !TY[el.type] || (skip && skip.has(el.id))) continue; const T = TY[el.type];
+    if (el.closed && (T.bldg || T.area === 'roof' || T.area === 'screen')) out.push({ id: el.id, pts: elPath(el), bldg: !!T.bldg });
+    else if (!el.closed && T.bldg && !used.has(el.id)) { const ch = chainOf(j, el); ch.members.forEach(m => used.add(m)); const P = ch.pts; if (P.length >= 4 && V.dist(P[0], P[P.length - 1]) < 0.3) out.push({ id: ch.members.join('+'), pts: P.slice(0, -1), bldg: true }); }
+  }
+  return out.sort((a, b) => b.bldg - a.bldg);
+}
+function onBldg(j, p, tol = EPS_JOIN, only, skip) {
+  let best = null;
+  for (const el of bldgPolys(j, skip)) {
+    if (only && el.id !== only.id) continue; const n = el.pts.length;
     for (let i = 0; i < n; i++) { const r = distPtSeg(p, el.pts[i], el.pts[(i + 1) % n]); if (r.d < tol && (!best || r.d < best.d)) best = { el, i, t: r.t, d: r.d, q: r.q }; }
   }
   return best;
 }
 /** where a chain end first meets a building: the end itself if it stops on (or near) a wall, else the first crossing when it overshoots into the building */
-function chainEndOnBldg(j, P, atHead) {
+function chainEndOnBldg(j, P, atHead, skip) {
   const Q = atHead ? P.slice().reverse() : P, e = Q[Q.length - 1];
-  const near = onBldg(j, e, Math.max(WALL_TOL, Math.min(3, 12 / (U.vn.k || 1)))); if (near) return { hit: near, cut: Q.length - 1 };
-  for (const el of j.elements) {
-    if (!el.pts || !el.closed || !TY[el.type] || !TY[el.type].bldg || el.bul.some(b => b) || !inPoly(el.pts, e)) continue;
+  const near = onBldg(j, e, Math.max(WALL_TOL, Math.min(3, 12 / (U.vn.k || 1))), null, skip); if (near) return { hit: near, cut: Q.length - 1 };
+  for (const el of bldgPolys(j, skip)) {
+    if (!inPoly(el.pts, e)) continue;
     const n = el.pts.length;
     for (let k = Q.length - 1; k > 0; k--) { // walk back from the end until the chain comes out of the building
       const a = Q[k - 1], b = Q[k]; let bestT = null, bi = -1, bq = null;
@@ -3106,6 +3146,33 @@ function chainEndOnBldg(j, P, atHead) {
     }
   }
   return null;
+}
+/** from a point on outline A to a point on outline B, following A then B through a corner where they touch; the way that keeps both outside the area */
+function acrossPath(hA, hB, chain) {
+  const A = hA.el.pts, B = hB.el.pts, nA = A.length, nB = B.length, onB = p => { for (let i = 0; i < nB; i++) { const r = distPtSeg(p, B[i], B[(i + 1) % nB]); if (r.d < 0.06) return { i, q: r.q, t: r.t }; } return null; };
+  const cands = [];
+  for (const dA of [1, -1]) {
+    // walk A from the hit; on each edge, stop at the first point where B touches it (a B corner on the edge, or an A corner on B)
+    const pathA = [hA.q]; let cur = hA.q, i = dA > 0 ? (hA.i + 1) % nA : hA.i, hit = null;
+    for (let k = 0; k <= nA && !hit; k++) {
+      const nxt = A[i], u = V.sub(nxt, cur), L2 = V.dot(u, u); let best = null;
+      for (let q = 0; q < nB && L2 > 1e-9; q++) { const r = distPtSeg(B[q], cur, nxt); if (r.d < 0.06 && r.t > 1e-6 && (!best || r.t < best.t)) best = { t: r.t, p: B[q] }; }
+      if (best) { pathA.push(best.p); hit = onB(best.p); break; }
+      pathA.push(nxt); hit = onB(nxt); cur = nxt; if (!hit) i = (i + dA + nA) % nA;
+    }
+    if (!hit) continue;
+    for (const dB of [1, -1]) {
+      const path = pathA.slice(); let jx = dB > 0 ? (hit.i + 1) % nB : hit.i, ok = false;
+      if (hit.i === hB.i && (dB > 0 ? hB.t >= hit.t : hB.t <= hit.t)) ok = true;
+      for (let k = 0; k < nB && !ok; k++) { path.push(B[jx]); if (jx === (dB > 0 ? hB.i : (hB.i + 1) % nB)) ok = true; else jx = (jx + dB + nB) % nB; }
+      if (!ok) continue; path.push(hB.q);
+      const poly = chain.concat(path.slice(1, -1)), inside = [A, B].reduce((sum, O) => { let c = 0; const sg = polyArea(O) > 0 ? 1 : -1; for (let q = 0; q < O.length; q++) { const a = O[q], b = O[(q + 1) % O.length], m = V.add(V.mul(V.add(a, b), .5), V.mul(V.norm([a[1] - b[1], b[0] - a[0]]), sg * 0.3)); if (inPoly(poly, m)) c++; } return sum + c; }, 0);
+      cands.push({ path, inside, A2: Math.abs(polyArea(poly)) });
+    }
+  }
+  if (!cands.length) return null;
+  cands.sort((x, y) => x.inside - y.inside || x.A2 - y.A2);
+  return cands[0].path; // from the chain's tail (on A) to its head (on B)
 }
 function wallPath(el, A, B, chain) {
   const n = el.pts.length, fw = [A.q], bw = [A.q];
@@ -3124,8 +3191,14 @@ function regionOf(j, el) {
   const ch = chainOf(j, el), P = ch.pts; if (P.length < 3) return null;
   const head = P[0], tail = P[P.length - 1];
   if (P.length >= 4 && V.dist(head, tail) < EPS_JOIN) return { poly: P.slice(0, -1), members: ch.members };
-  const eT = chainEndOnBldg(j, P, false), eH = chainEndOnBldg(j, P, true);
-  if (eT && eH && eT.hit.el === eH.hit.el) {
+  const skip = new Set(ch.members), eT = chainEndOnBldg(j, P, false, skip), eH = chainEndOnBldg(j, P, true, skip);
+  if (eT && eH && eT.hit.el.id !== eH.hit.el.id) { // ends on two different outlines (house and porch…): close straight between them
+    let Q = P.slice(0, eT.cut + 1); if (eT.q) Q.push(eT.q); else Q[Q.length - 1] = eT.hit.q;
+    const hc = P.length - 1 - eH.cut; Q = Q.slice(hc); if (eH.q) Q.unshift(eH.q); else Q[0] = eH.hit.q;
+    const via = acrossPath(eT.hit, eH.hit, Q); // along the house, then along the porch, where they touch
+    if (Q.length >= 3) return { poly: via ? Q.concat(via.slice(1, -1)) : Q, members: ch.members, wall: eT.hit.el.id + ', ' + eH.hit.el.id, ends: [{ from: P[P.length - 1], to: Q[Q.length - 1], cut: eT.q ? eT.cut : null }, { from: P[0], to: Q[0], cut: eH.q ? eH.cut : null, head: true }] };
+  }
+  if (eT && eH && eT.hit.el.id === eH.hit.el.id) {
     // trim an overshoot into the building, then close along the building's outline
     let Q = P.slice(0, eT.cut + 1); if (eT.q) Q.push(eT.q); else Q[Q.length - 1] = eT.hit.q;
     const hc = P.length - 1 - eH.cut; Q = Q.slice(hc); if (eH.q) Q.unshift(eH.q); else Q[0] = eH.hit.q;
