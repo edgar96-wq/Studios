@@ -46,7 +46,7 @@ import java.io.IOException;
  * saving exports to OneDrive / a folder / the phone, the camera for job photos, and the back button.
  */
 public class MainActivity extends Activity {
-    static final int REQ_FILES = 11, REQ_SAVE = 12, REQ_TREE = 13, REQ_BT = 14;
+    static final int REQ_FILES = 11, REQ_SAVE = 12, REQ_TREE = 13, REQ_BT = 14, REQ_SCAN = 15;
     static final String HOME = "https://appassets.androidplatform.net/assets/www/index.html";
 
     WebView web;
@@ -274,7 +274,15 @@ public class MainActivity extends Activity {
     }
 
     @Override
+    public void onRequestPermissionsResult(int req, String[] perms, int[] res) {
+        super.onRequestPermissionsResult(req, perms, res);
+        boolean ok = res.length > 0; for (int r : res) ok &= r == PackageManager.PERMISSION_GRANTED;
+        if (req == REQ_SCAN || req == REQ_BT) emit("btperm", "{\"ok\":" + ok + ",\"scan\":" + (req == REQ_SCAN) + "}");
+    }
+
+    @Override
     protected void onDestroy() {
+        rover.release();
         rover.disconnect(false);
         web.destroy();
         super.onDestroy();
@@ -293,6 +301,18 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface public void btConnect(String address) { if (hasBtPermission()) rover.connect(address); }
+
+        /** search for the rover (Android 12+: "Nearby devices"; older phones: Location) */
+        @JavascriptInterface public String btScan() {
+            String[] need = Build.VERSION.SDK_INT >= 31 ? new String[]{Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT} : new String[]{Manifest.permission.ACCESS_FINE_LOCATION};
+            for (String p : need) if (checkSelfPermission(p) != PackageManager.PERMISSION_GRANTED) {
+                ui.post(() -> requestPermissions(need, REQ_SCAN));
+                return "{\"perm\":true,\"error\":\"" + (Build.VERSION.SDK_INT >= 31 ? "Allow \\\"Nearby devices\\\" for Crew Studio" : "Allow Location for Crew Studio (Android needs it to search for Bluetooth)") + ", then the search starts.\"}";
+            }
+            return rover.scan();
+        }
+        @JavascriptInterface public void btStopScan() { rover.stopScan(); }
+        @JavascriptInterface public String btPair(String address) { return hasBtPermission() ? rover.pair(address) : "{\"error\":\"Allow Nearby devices first.\"}"; }
         @JavascriptInterface public void btDisconnect() { rover.disconnect(true); }
 
         @JavascriptInterface public void openBtSettings() {

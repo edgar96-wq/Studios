@@ -152,23 +152,29 @@ button.tile.on{background:var(--plum)}button.tile.on b,button.tile.on .k{color:#
 .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--rule);margin-right:5px;vertical-align:0}
 .dot.good{background:var(--good)}.dot.warn{background:#d39020}.dot.crit{background:var(--crit)}
 
-.lenpop,.minipop{position:absolute;z-index:22;width:158px;border-radius:12px;display:flex;flex-direction:column;gap:5px;padding:6px 7px 7px}
-.lenpop.two{width:196px}
-.minipop{width:auto;min-width:150px;max-width:min(236px,calc(100% - 24px));z-index:23}
-.minipop.narrow{width:196px}
-.lh{display:flex;align-items:center;gap:5px;font:11.5px var(--font-data);color:var(--muted);padding-right:20px;position:relative;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:18px}
+.lenpop,.minipop{position:absolute;z-index:22;width:144px;border-radius:11px;display:flex;flex-direction:column;gap:4px;padding:5px 6px 6px}
+.lenpop.two{width:178px}
+.minipop{width:auto;min-width:138px;max-width:min(214px,calc(100% - 24px));z-index:23}
+.minipop.narrow{width:178px}
+.lh{display:flex;align-items:center;gap:5px;font:11px var(--font-data);color:var(--muted);padding-right:20px;position:relative;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:18px;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+.lh::before,.fhead.dr::before{content:"";flex:0 0 auto;width:8px;height:12px;margin-right:1px;background:radial-gradient(circle,var(--muted) 1px,transparent 1.4px) 0 0/4px 4px;opacity:.55}
+.fhead.dr{cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+.fhead .pmin{margin-left:auto}
+.panel.min .psc>*:not(.fhead){display:none!important}
+.panel.min .psc{padding:8px 12px}
+.conbar .grip{width:14px;align-self:stretch;cursor:grab;touch-action:none;background:radial-gradient(circle,var(--muted) 1px,transparent 1.4px) 0 0/4px 4px;opacity:.55;margin:4px 0 4px 6px}
 .lh b{color:var(--plum-ink);font-weight:600}
 .lx{position:absolute;right:-3px;top:-2px;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;color:var(--muted)}
 .lx:hover{background:rgba(59,29,82,.09)}.lx svg{width:13px;height:13px}
 .lenpop label,.minipop label{display:flex;flex-direction:column;gap:1px;font:600 9px var(--font-data);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);min-width:0}
-.lenpop input,.minipop input.big{font:600 18px var(--font-data);text-align:right;padding:3px 7px;border-radius:8px;border:1px solid var(--plum-line);background:#fff;width:100%;color:var(--plum-ink)}
-.minipop input:not(.big){padding:5px 8px;font-size:14px}
+.lenpop input,.minipop input.big{font:600 16px var(--font-data);text-align:right;padding:2px 6px;border-radius:7px;border:1px solid var(--plum-line);background:#fff;width:100%;color:var(--plum-ink)}
+.minipop input:not(.big){padding:4px 7px;font-size:14px}
 .lrow{display:grid;grid-template-columns:1fr 1fr;gap:5px}
 .lin{display:flex;gap:5px;align-items:flex-end}
 .lin label{flex:1}
 .lbtns{display:flex;gap:5px;justify-content:flex-end}
-.ib{width:34px;height:30px;border-radius:9px;display:grid;place-items:center;flex:0 0 auto;color:var(--plum);background:rgba(255,255,255,.7);box-shadow:inset 0 0 0 1px var(--plum-line)}
-.ib svg{width:18px;height:18px}
+.ib{width:31px;height:28px;border-radius:8px;display:grid;place-items:center;flex:0 0 auto;color:var(--plum);background:rgba(255,255,255,.7);box-shadow:inset 0 0 0 1px var(--plum-line)}
+.ib svg{width:17px;height:17px}
 .ib:hover{background:#fff}
 .ib.ok{background:linear-gradient(180deg,#34a361,#23794a);color:#fff;box-shadow:inset 0 0 0 1px rgba(255,255,255,.35),0 2px 6px rgba(35,121,74,.35)}
 .ib.ok:hover{background:linear-gradient(180deg,#3cb26c,#268453)}
@@ -177,7 +183,7 @@ button.tile.on{background:var(--plum)}button.tile.on b,button.tile.on .k{color:#
 .mpb{font:13px/1.35 var(--font-data);color:var(--ink)}
 .mpb b{font-weight:600;color:var(--plum-ink)}
 .mchips{display:flex;flex-wrap:wrap;gap:4px}
-.mchip{padding:5px 9px;border-radius:8px;background:rgba(255,255,255,.75);box-shadow:inset 0 0 0 1px var(--plum-line);font:600 12.5px var(--font-data);color:var(--plum-ink);white-space:nowrap}
+.mchip{padding:4px 8px;border-radius:8px;background:rgba(255,255,255,.75);box-shadow:inset 0 0 0 1px var(--plum-line);font:600 12px var(--font-data);color:var(--plum-ink);white-space:nowrap}
 .mchip:hover{background:#fff}.mchip.on{background:var(--plum);color:#f5e6b8;box-shadow:none}
 .mchip small{font-weight:400;color:var(--muted);margin-left:4px}.mchip.on small{color:#e3d3f0}
 .conbar{position:absolute;z-index:16;border-radius:999px;padding:4px;display:flex;gap:2px;align-items:center}
@@ -287,7 +293,9 @@ body.phone .pair{grid-template-columns:38px 38px}
 body.phone .rs{flex:0 0 1px;width:1px;height:34px;margin:0 4px;background:linear-gradient(180deg,transparent,rgba(180,138,46,.75),transparent)}
 body.phone .rtype canvas{width:38px;height:22px}
 body.phone .hint{bottom:130px;max-width:calc(100% - 24px)}
-body.phone .panel{top:auto;bottom:130px;left:8px;right:8px;width:auto;max-height:calc(100% - 190px)}
+body.phone .panel{top:auto;bottom:130px;left:8px;right:8px;width:auto;max-height:calc(52% - 40px);font-size:13px}
+body.phone .panel .psc{padding:10px 12px 12px;gap:8px}
+body.phone #panel:not([hidden]) ~ .hint{display:none}
 body.phone .fly{left:8px!important;right:8px!important;width:auto}
 body.phone .rotw{left:8px;top:8px;transform:scale(.82);transform-origin:top left}
 body.phone .tab{padding:7px 9px;font-size:13px}body.phone .tabs{gap:1px;padding:4px}
@@ -349,7 +357,7 @@ body.phone .tab .xs{display:inline}body.phone .tab .s.rev{display:none}
    Crew Studio — field notes, GPS shots, photos and checks.
    Single file. Data stays on this device (browser storage).
    ================================================================ */
-const VERSION = '0.8.0';
+const VERSION = '0.8.3';
 const KEY = 'surveyorStudio.v1';
 const D2R = Math.PI / 180, USFT = 3937 / 1200;
 const $ = (s, r = document) => r.querySelector(s);
@@ -475,6 +483,9 @@ const MON_RE = /^(FIR|FIP|FN|FND|FD|CM|PK|IR|IP|MON)\b/;
 const CORNER_TYPES = ['FIR', 'FIP', 'FN', 'FND', 'FD', 'CM', 'PK', 'Other'];
 const MON_TYPES = ['FIR', 'FIP', 'FND', 'FN', 'FD', 'CM'];
 const MON_ID = new Set(['FIR', 'FND', 'CM']);
+const MON_PICK = [['FIR', 'Found iron rod'], ['FIP', 'Found iron pipe'], ['FND', 'Found nail & disk'], ['FN', 'Found nail'], ['FD', 'Found drill hole'], ['CM', 'Concrete monument'], ['PK', 'PK nail'], ['SET', 'Set iron rod & cap'], ['NF', 'Not found']];
+const MON_SIZES = ['1/2"', '5/8"', '3/4"', '1"', '2"'];
+const monLabel = m => m === 'SET' ? 'SET IR&C' : m === 'NF' ? 'NOT FOUND' : m;
 const AREA_OPTS = {
   roof: { head: 'Roofed area', opts: ['BRICK', 'CONCRETE', 'TILE', 'WOOD TILE'], line1: 'ROOFED' },
   screen: { head: 'Screened area', opts: ['BRICK', 'CONCRETE', 'TILE', 'WOOD TILE', 'POOL', 'POOL & SPA'], line1: 'SCREENED' },
@@ -580,6 +591,7 @@ const PDB = {
 /* ---------------- UI state ---------------- */
 const U = {
   tab: 'today', mode: 'pen', type: 'wall', sel: null, panel: null, penSeen: false,
+  panelMin: (() => { try { const v = localStorage.getItem('crew.panelMin'); return v == null ? innerWidth < 600 : v === '1'; } catch (e) { return innerWidth < 600; } })(),
   snap: { ang: true, end: true, tan: true },
   undo: {}, redo: {}, prompted: new Set(),
   vn: null, vg: null, vp: null, fitted: {},
@@ -695,6 +707,7 @@ class View {
 }
 U.vn = new View(); U.vg = new View(); U.vp = new View();
 const isPhone = () => innerWidth < 600 && innerHeight > innerWidth;
+const isPhoneUI = () => document.body.classList.contains('phone');
 function setPhone() { const on = isPhone(); if (document.body.classList.contains('phone') !== on) { document.body.classList.toggle('phone', on); return true; } return false; }
 function viewPads(W) {
   if (U.railsOff) return { l: 30, r: 30, t: 26, b: 60 };
@@ -1030,11 +1043,30 @@ function lotGeom(frIn) {
   for (const d of defs) {
     const idx = runs[d.key]; if (!idx || !off[d.key]) continue;
     const mid = B[idx[Math.floor((idx.length - 1) / 2)]], so = offPiece(mid, off[d.key].cl); if (!so) continue;
-    const ap = arcPts(so.a, so.b, so.bul), m = ap[Math.floor(ap.length / 2)], u = V.norm(V.sub(ap[Math.min(ap.length - 1, Math.floor(ap.length / 2) + 1)], ap[Math.max(0, Math.floor(ap.length / 2) - 1)]));
+    // centred on the lot's frontage: halfway along the centerline run in front of the lot (not at the end of a piece)
+    const ord = runOf(d.key) || idx, cp = []; for (const i of ord) { const q = offPiece(B[i], off[d.key].cl); if (q) arcPts(q.a, q.b, q.bul, q.bul ? 24 : 1).forEach((pt, k) => { if (k > 0 || !cp.length) cp.push(pt); }); }
+    let m = so.a, u = V.norm(V.sub(so.b, so.a));
+    if (cp.length > 1) { const half = polyLen(cp) / 2; let acc = 0; for (let i = 1; i < cp.length; i++) { const Ls = V.dist(cp[i - 1], cp[i]); if (acc + Ls >= half && Ls > 0) { u = V.norm(V.sub(cp[i], cp[i - 1])); m = V.add(cp[i - 1], V.mul(u, half - acc)); break; } acc += Ls; } }
     const st = d.st, wk = +st.walk || 0;
     labels.push({ street: d.key, at: m, u, nOut: [u[1], -u[0]], name: (st.name || 'STREET').toUpperCase(), road: roadText(st), walk: wk > 0 ? { w: wk, o: off[d.key].walk1 - wk / 2 } : null, mid });
   }
-  const faceAz = (compassOf([0, -1]) / D2R + 360) % 360, g = { north: V.rot([0, 1], -alpha), alpha, faceAz, fr, S, B, corners, piv, lines, labels, issues, misclose, area: Math.abs(area) / 2, mode, face: ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'][Math.round(faceAz / 45) % 8] };
+  // break lines: where a street's drawing stops (not at a crossing street) a zig-zag across it says "it goes on"
+  const breaks = [];
+  for (const d of defs) {
+    const Lc = lines.find(L => L.key === d.key + ':cl'); if (!Lc || !Lc.segs.length) continue;
+    const mine = lines.filter(L => L.street === d.key), others = lines.filter(L => L.kind === 'cl' && L.street !== d.key);
+    for (const atEnd of [false, true]) {
+      const sg = atEnd ? Lc.segs[Lc.segs.length - 1] : Lc.segs[0], e = atEnd ? sg.b : sg.a; if (sg.bul) continue;
+      const u = V.norm(atEnd ? V.sub(sg.b, sg.a) : V.sub(sg.a, sg.b)), n = [-u[1], u[0]];
+      if (others.some(O => O.segs.some(q => distPtSeg(e, q.a, q.b).d < rwOf(O.street) / 2 + 12))) continue; // ends in an intersection
+      let lo = 0, hi = 0;
+      for (const L of mine) for (const q of [L.segs[0].a, L.segs[L.segs.length - 1].b]) { const dq = V.sub(q, e); if (Math.abs(V.dot(dq, u)) < 12) { const t = V.dot(dq, n); lo = Math.min(lo, t); hi = Math.max(hi, t); } }
+      if (hi - lo < 4) continue; lo -= 2; hi += 2;
+      const c = (lo + hi) / 2, z = Math.min(2.2, (hi - lo) / 10), at = t => V.add(e, V.mul(n, t));
+      breaks.push({ street: d.key, pts: [at(lo), at(c - z * 1.4), V.add(at(c - z * 0.45), V.mul(u, z * 1.1)), V.sub(at(c + z * 0.45), V.mul(u, z * 1.1)), at(c + z * 1.4), at(hi)].map(r2) });
+    }
+  }
+  const faceAz = (compassOf([0, -1]) / D2R + 360) % 360, g = { north: V.rot([0, 1], -alpha), alpha, faceAz, fr, S, B, corners, piv, lines, labels, breaks, issues, misclose, area: Math.abs(area) / 2, mode, face: ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'][Math.round(faceAz / 45) % 8] };
   lotCache = { k: key, g }; return g;
 }
 function frameCorners(fr) { const g = lotGeom(fr); return g ? g.corners : []; }
@@ -1150,12 +1182,29 @@ function recognize(P, T, k, j) {
     if (maxDev > Math.max(0.08 * chord, 4 / k)) {
       const cf = circleFit(P);
       if (cf && cf.r < 40 * chord) {
-        let ss = 0; for (const p of P) { const e = V.dist(p, cf.c) - cf.r; ss += e * e; }
-        if (Math.sqrt(ss / P.length) < Math.max(0.1 * cf.r, 4 / k)) { kind = 'arc'; pts = [A, B]; bul = [Math.tan(sweepThrough(cf.c, A, P[Math.floor(P.length / 2)], B) / 4)]; }
+        let ss = 0, mx = 0; for (const p of P) { const e = V.dist(p, cf.c) - cf.r; ss += e * e; mx = Math.max(mx, Math.abs(e)); }
+        if (Math.sqrt(ss / P.length) < Math.max(0.1 * cf.r, 4 / k) && (T.cat !== 'Surfaces' || mx < Math.max(0.12 * cf.r, 5 / k))) { /* surfaces: a line running into a curve is not one big arc */ kind = 'arc'; pts = [A, B]; bul = [Math.tan(sweepThrough(cf.c, A, P[Math.floor(P.length / 2)], B) / 4)]; }
       }
     }
   }
-  if (kind !== 'arc') {
+  if (kind !== 'arc' && T.cat === 'Surfaces' && !nearClose) { // a curved walk or edge: a few arcs that follow the stroke, not a jagged polyline
+    const fine = rdp(P, 3 / k); let sharp = false;
+    for (let i = 1; i < fine.length - 1; i++) { const d1 = V.sub(fine[i], fine[i - 1]), d2 = V.sub(fine[i + 1], fine[i]); if (V.len(d1) > 4 / k && V.len(d2) > 4 / k && Math.abs(angBetween(d1, d2)) > 40 * D2R) { sharp = true; break; } }
+    let maxDev = 0; for (const p of P) maxDev = Math.max(maxDev, distPtSeg(p, A, B).d);
+    if (!sharp && maxDev > Math.max(0.08 * chord, 6 / k)) {
+      const idx = [0]; { const keep = rdp(P.map((p, i) => [p[0], p[1], i]), 14 / k); for (let t = 1; t < keep.length; t++) idx.push(keep[t][2]); }
+      const cp = [], cb = [];
+      for (let t = 0; t + 1 < idx.length; t++) {
+        const i0 = idx[t], i1 = idx[t + 1], a = P[i0], b = P[i1]; cp.push(a); let dv = 0, im = i0;
+        for (let i = i0; i <= i1; i++) { const d = distPtSeg(P[i], a, b).d; if (d > dv) { dv = d; im = i; } }
+        let bu = 0; if (dv > 2.5 / k && i1 - i0 >= 3) { bu = arcBulge(a, b, P[im]); if (!isFinite(bu) || Math.abs(bu) > 3) bu = 0; }
+        cb.push(bu);
+      }
+      cp.push(P[P.length - 1]);
+      if (cp.length >= 2) { kind = cb.some(x => x) ? 'curve' : 'polyline'; pts = cp; bul = cb; }
+    }
+  }
+  if (kind !== 'arc' && kind !== 'curve') {
     pts = Q.slice();
     if (nearClose && pts.length >= 4) { pts.pop(); closed = true; kind = 'shape'; }
     else if (nearClose && pts.length === 3) pts.pop();
@@ -1163,7 +1212,7 @@ function recognize(P, T, k, j) {
     bul = new Array(closed ? pts.length : pts.length - 1).fill(0);
   }
   let axis = 0;
-  if (kind !== 'arc') {
+  if (kind !== 'arc' && kind !== 'curve') {
     if (T.cat === 'Building') {
       let best = 0, ba = 0; const n = pts.length, m = closed ? n : n - 1;
       for (let i = 0; i < m; i++) { const d = V.sub(pts[(i + 1) % n], pts[i]), L = V.len(d); if (L > best) { best = L; ba = Math.atan2(d[1], d[0]); } }
@@ -1176,6 +1225,9 @@ function recognize(P, T, k, j) {
     if (kind === 'arc') {
       const s0 = snapPt(j, pts[0]); if (s0.kind) { pts[0] = s0.p; startSnap = s0; }
       const s1 = snapPt(j, pts[1]); if (s1.kind) { pts[1] = s1.p; endSnap = true; }
+    } else if (kind === 'curve') {
+      const s0 = snapPt(j, pts[0]); if (s0.kind) { pts[0] = s0.p; startSnap = s0; }
+      const s1 = snapPt(j, pts[pts.length - 1]); if (s1.kind) { pts[pts.length - 1] = s1.p; endSnap = true; }
     } else if (!closed) {
       const s0 = snapPt(j, pts[0]);
       if (s0.kind) { const d = V.sub(s0.p, pts[0]); pts = pts.map(p => V.add(p, d)); startSnap = s0; }
@@ -1555,8 +1607,8 @@ function mapsRoute(jobs) {
   const dest = stops[stops.length - 1], way = stops.slice(0, -1).slice(0, 9);
   return 'https://www.google.com/maps/dir/?api=1&travelmode=driving&destination=' + encodeURIComponent(dest) + (way.length ? '&waypoints=' + encodeURIComponent(way.join('|')) : '');
 }
-function typeLabel(t) { return t === 'text' ? 'Text note' : t.startsWith('u:') ? UT[t.slice(2)].l : TY[t].l; }
-function typeShort(t) { return t === 'text' ? 'Text' : t.startsWith('u:') ? (UT[t.slice(2)].code || t.slice(2)) : (TY[t].s || TY[t].l); }
+function typeLabel(t) { return t === 'text' ? 'Text note' : t.startsWith('m:') ? (MON_PICK.find(x => x[0] === t.slice(2)) || [0, 'Monument'])[1] : t.startsWith('u:') ? UT[t.slice(2)].l : TY[t].l; }
+function typeShort(t) { return t === 'text' ? 'Text' : t.startsWith('m:') ? monLabel(t.slice(2)) : t.startsWith('u:') ? (UT[t.slice(2)].code || t.slice(2)) : (TY[t].s || TY[t].l); }
 function photoCount(j, cat) { return j ? j.photos.filter(p => p.cat === cat).length : 0; }
 const RAILS = {
   today() {
@@ -1650,6 +1702,7 @@ function drawSwatch(cv, t) {
   const sc = w / 46;
   if (t === 'text') { ctx.fillStyle = P.text; ctx.font = `600 ${11 * sc}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('Aa', w / 2, h / 2); return; }
   if (t.startsWith('u:')) { drawUtilSym(ctx, UT[t.slice(2)], [w / 2, h / 2], 0, P, sc * 0.75); return; }
+  if (t.startsWith('m:')) { drawMonSym(ctx, t.slice(2), [w / 2, h / 2], P, sc * 0.9); return; }
   const T = TY[t]; ctx.strokeStyle = P[T.col]; ctx.lineWidth = Math.max(2, T.w * sc * 0.8); ctx.setLineDash(T.dash ? T.dash.map(x => x * sc * 0.7) : []);
   ctx.beginPath(); ctx.moveTo(w * 0.14, h * 0.75); ctx.lineTo(w * 0.86, h * 0.25); ctx.stroke(); ctx.setLineDash([]);
 }
@@ -1663,7 +1716,7 @@ const FLY = {
       + grp('Building', ['wall', 'shed', 'roofed', 'screen', 'steps', 'equip'], 'areas ask for their floor or label when they close')
       + grp('Surfaces', ['conc', 'drive', 'walk', 'brick', 'tile', 'slab', 'deck', 'pool', 'asph'])
       + grp('Fences & walls', ['clf', 'wdf', 'irf', 'cbs', 'seawall', 'dock'])
-      + grp('Boundary', ['lot', 'ease'])
+      + `<h4>Monuments<small>tap a lot corner, or where it was found</small></h4><div class="tgrid">${MON_PICK.map(([k, l]) => btn('m:' + k, monLabel(k), l)).join('')}</div>`
       + `<h4>Utility points<small>tap to place</small></h4><div class="tgrid">${UTILS.filter(u => !u.old).map(u => btn('u:' + u.k, u.code || u.k, u.l)).join('')}${btn('text', 'Text', 'Text note')}</div>`;
   },
   snap() {
@@ -1717,8 +1770,8 @@ function positionFly() {
 
 /* ---------------- hint pill ---------------- */
 const HINTS = {
-  select: 'Tap a line to select it, then drag it to move it square to itself (joined lines stretch). Drag a shot number\'s circle to move it. Tap more lines for parallel, perpendicular, tangent.',
-  pen: 'Freehand: lines snap square, curves become arcs, a shape closes when you end at its start.',
+  select: 'Tap a line, then drag its middle: a line moves square to itself, a curve bends (joined lines stay). Drag a curve\'s end to slide it along its line. Tap a lot corner for its monument. Tap more lines for parallel, perpendicular, tangent.',
+  pen: 'Freehand: lines snap square, curves become arcs (a curved walk becomes a few smooth arcs), a shape closes when you end at its start.',
   line: 'Drag from one end to the other. Ends land on nearby corners and lines.',
   poly: 'Tap each corner. Tap the first corner again to close, or press Finish.',
   rect: 'Drag from one corner to the opposite corner.',
@@ -1843,6 +1896,11 @@ function renderPanel() {
   else if (U.tab === 'plat' && j && U.platSel) { const m = j.plat.marks.find(x => x.id === U.platSel); if (m) h = markPanel(j, m); }
   const sc = p.querySelector('.psc'), keep = sc ? sc.scrollTop : 0;
   p.innerHTML = h ? `<div class="psc">${h}</div>` : ''; p.hidden = !h; if (h) p.querySelector('.psc').scrollTop = keep;
+  if (h) {
+    const fh = p.querySelector('.fhead'); if (fh) { fh.classList.add('dr'); fh.title = 'Drag to move · double-tap to put back'; const x = fh.querySelector('[data-act="panel-close"]'); if (x) x.insertAdjacentHTML('beforebegin', `<button class="btn small pmin" data-act="panel-min" aria-label="${U.panelMin ? 'Show' : 'Hide'} details" title="${U.panelMin ? 'Show' : 'Hide'} details">${icon(U.panelMin ? 'down' : 'up')}</button>`); }
+    p.classList.toggle('min', !!U.panelMin && !!fh);
+    p.style.left = p.style.top = p.style.right = p.style.bottom = ''; if (POP.get('panel')) { p.style.right = 'auto'; p.style.bottom = 'auto'; if (document.body.classList.contains('phone')) p.style.width = 'calc(100% - 16px)'; POP.place(p, 'panel'); } else p.style.width = '';
+  }
 }
 function elPanel(j, el) {
   const dis = j.status === 'closed' ? ' disabled' : '';
@@ -1854,13 +1912,17 @@ function elPanel(j, el) {
       ${field('Note', 'pNote', el.note || '', dis)}${field('Linked shot', 'pUPt', el.point || '', 'placeholder="pt #"' + dis)}
       <div class="row"><button class="btn danger small" data-act="delete"${dis}>${icon('trash')}Delete</button></div>`;
   }
+  if (el.type === 'mon') return head('Monument') + `<p class="num" style="margin:0">${esc(monText(el))}</p><div class="row"><button class="btn small primary" data-act="mon-edit"${dis}>${icon('edit')}Edit</button><button class="btn danger small" data-act="delete"${dis}>${icon('trash')}Delete</button></div>`;
   if (el.type === 'text') return head('Text note') + `${field('Text', 'pText', el.text, dis)}<div class="row"><button class="btn danger small" data-act="delete"${dis}>${icon('trash')}Delete</button></div>`;
   if (el.type === 'area') {
     const o = AREA_OPTS[el.kind];
-    return head(o.head) + `<div class="mchips">${o.opts.map(x => `<button class="mchip${el.label === x ? ' on' : ''}" data-act="area-set:${esc(x)}"${dis}>${esc(x)}</button>`).join('')}</div>${field('Label', 'pArea', el.label, dis)}<p class="muted" style="margin:0;font-size:12.5px">Made of ${esc(el.members.join(', '))}.</p><div class="row"><button class="btn danger small" data-act="delete"${dis}>${icon('trash')}Remove label</button></div>`;
+    const pm = el.kind === 'equip' && el.members.length === 1 ? j.elements.find(x => x.id === el.members[0]) : null, lw = isPad(pm) ? padLW(pm) : null;
+    return head(o.head) + `<div class="mchips">${o.opts.map(x => `<button class="mchip${el.label === x ? ' on' : ''}" data-act="area-set:${esc(x)}"${dis}>${esc(x)}</button>`).join('')}</div>${field('Label', 'pArea', el.label, dis)}`
+      + (lw ? `<div class="grid2">${field('Length', 'pPadL', lw.L != null ? f1(lw.L) : '', `inputmode="decimal" placeholder="${f1(lw.gl)}"` + dis)}${field('Width', 'pPadW', lw.W != null ? f1(lw.W) : '', `inputmode="decimal" placeholder="${f1(lw.gw)}"` + dis)}</div>` : '') + `<p class="muted" style="margin:0;font-size:12.5px">Made of ${esc(el.members.join(', '))}.</p><div class="row"><button class="btn danger small" data-act="delete"${dis}>${icon('trash')}Remove label</button></div>`;
   }
   const T = TY[el.type], SG = segs(el), cl = closure(el);
-  let h = head(T.l) + selectField('Type', 'pType', TYPES.map(t => [t.k, t.l]), el.type);
+  let h = head(T.l) + selectField('Type', 'pType', TYPES.filter(t => !['lot', 'ease'].includes(t.k) || t.k === el.type).map(t => [t.k, t.l]), el.type);
+  if (isPad(el)) { const lw = padLW(el); h += `<div class="grid2">${field('Length', 'pPadL', lw.L != null ? f1(lw.L) : '', `inputmode="decimal" placeholder="${f1(lw.gl)}"` + dis)}${field('Width', 'pPadW', lw.W != null ? f1(lw.W) : '', `inputmode="decimal" placeholder="${f1(lw.gw)}"` + dis)}</div>`; }
   if (T.area) { const a = areaOf(j, el.id); h += `<div class="row"><span class="chip ${a ? 'plum' : ''}">${a ? esc(areaLines(a).join(' ')) : 'no label yet'}</span><button class="btn small" data-act="area-label"${dis}>${a ? 'Change' : 'Label area'}</button></div>`; }
   h += `<label class="chk"><input type="checkbox" id="pClosed"${el.closed ? ' checked' : ''}${dis || (el.pts.length < 3 ? ' disabled' : '')}> Closed shape</label>`;
   if (el.raw) h += `<label class="chk"><input type="checkbox" id="pDrawn"${el.asDrawn ? ' checked' : ''}${dis}> Keep as drawn (no snapping)</label>`;
@@ -1977,24 +2039,57 @@ function drawUtilSym(ctx, u, q, rot, P, scale = 1) {
   else { ctx.beginPath(); ctx.arc(0, 0, r, 0, 2 * Math.PI); ctx.fill(); ctx.stroke(); txt({ WELL: 'W', ST: 'ST', LP: 'L', MH: 'S', CO: 'CO' }[u.k] || u.k, r * 0.85); }
   ctx.restore();
 }
+function drawMonSym(ctx, m, q, P, sc = 1) {
+  const col = m === 'NF' ? P.muted : P.mon, r = 5.5 * sc; ctx.save(); ctx.strokeStyle = col; ctx.fillStyle = m === 'NF' || m === 'SET' ? P.bg : col; ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  if (m === 'FN' || m === 'PK' || m === 'FD') { ctx.moveTo(q[0], q[1] - r * 1.25); ctx.lineTo(q[0] + r * 1.1, q[1] + r * 0.9); ctx.lineTo(q[0] - r * 1.1, q[1] + r * 0.9); ctx.closePath(); }
+  else if (m === 'CM') ctx.rect(q[0] - r, q[1] - r, 2 * r, 2 * r);
+  else ctx.arc(q[0], q[1], r, 0, 2 * Math.PI);
+  ctx.fill(); ctx.stroke();
+  if (m === 'SET') { ctx.beginPath(); ctx.arc(q[0], q[1], r * 0.4, 0, 2 * Math.PI); ctx.fillStyle = col; ctx.fill(); }
+  if (m === 'NF') { ctx.beginPath(); ctx.moveTo(q[0] - r * .7, q[1] - r * .7); ctx.lineTo(q[0] + r * .7, q[1] + r * .7); ctx.stroke(); }
+  ctx.restore();
+}
+const monText = el => [monLabel(el.mon), el.size, el.mon !== 'NF' ? el.cap : '', el.note].filter(Boolean).join(' ');
 function haloText(ctx, s, x, y, col, P, font) {
   ctx.font = font || '600 12px "Roboto Condensed", "Arial Narrow", sans-serif'; ctx.lineJoin = 'round';
   ctx.lineWidth = 3.5; ctx.strokeStyle = P.bg; ctx.strokeText(s, x, y); ctx.fillStyle = col; ctx.fillText(s, x, y);
 }
-function segLabel(ctx, a, b, s, col, P, inward, font) {
+/* labels already placed in this drawing pass (screen boxes), so the next one can step aside instead of covering it */
+const LB = { boxes: [], reset() { this.boxes = []; }, hit(b) { return this.boxes.some(o => b[0] < o[2] && b[2] > o[0] && b[1] < o[3] && b[3] > o[1]); }, add(b) { this.boxes.push(b); } };
+const rotBox = (p, w, h, ang) => { const c = Math.abs(Math.cos(ang)), sn = Math.abs(Math.sin(ang)), W = (w * c + h * sn) / 2, H = (w * sn + h * c) / 2; return [p[0] - W, p[1] - H, p[0] + W, p[1] + H]; };
+function inPoly(P, t) { let inside = false; for (let k = 0, m = P.length - 1; k < P.length; m = k++) { const A = P[k], B = P[m]; if ((A[1] > t[1]) !== (B[1] > t[1]) && t[0] < (B[0] - A[0]) * (t[1] - A[1]) / (B[1] - A[1]) + A[0]) inside = !inside; } return inside; }
+/** one reading direction for the whole sheet: horizontal text left to right, vertical text bottom to top */
+function uprightAng(ang) { if (ang >= Math.PI / 2 - 1e-3) ang -= Math.PI; if (ang < -Math.PI / 2 - 1e-3) ang += Math.PI; return ang; }
+function segLabel(ctx, a, b, s, col, P, inward, font) { // inward: a screen point the label leans toward, or { poly } to keep it inside a closed shape, or { out: poly } for outside
   const L = Math.hypot(b[0] - a[0], b[1] - a[1]); ctx.font = font || '600 12px "Roboto Condensed", "Arial Narrow", sans-serif'; if (L < 0.5) return;
-  const tw = ctx.measureText(s).width, short = L < tw + 8;
-  let ang = Math.atan2(b[1] - a[1], b[0] - a[0]); const n = [-(b[1] - a[1]) / L, (b[0] - a[0]) / L];
+  const tw = ctx.measureText(s).width, th = parseFloat((ctx.font.match(/(\d+(\.\d+)?)px/) || [0, 12])[1]) + 2, short = L < tw + 8;
+  const ang = uprightAng(Math.atan2(b[1] - a[1], b[0] - a[0])), n = [-(b[1] - a[1]) / L, (b[0] - a[0]) / L], u = [(b[0] - a[0]) / L, (b[1] - a[1]) / L];
   const mid = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]; let side = 1;
-  if (inward) { const p1 = [mid[0] + n[0] * 10, mid[1] + n[1] * 10], p2 = [mid[0] - n[0] * 10, mid[1] - n[1] * 10]; side = Math.hypot(p1[0] - inward[0], p1[1] - inward[1]) < Math.hypot(p2[0] - inward[0], p2[1] - inward[1]) ? 1 : -1; }
-  if (short) { // too short to hold its number: put it just outside the line with a leader, so no length is ever lost
-    if (inward) side = -side; const off = 16 + Math.abs(n[1]) * 0 + 6, p = [mid[0] + n[0] * off * side, mid[1] + n[1] * off * side];
-    ctx.save(); ctx.strokeStyle = col; ctx.globalAlpha = .7; ctx.lineWidth = .8; ctx.beginPath(); ctx.moveTo(mid[0] + n[0] * 2 * side, mid[1] + n[1] * 2 * side); ctx.lineTo(mid[0] + n[0] * (off - 7) * side, mid[1] + n[1] * (off - 7) * side); ctx.stroke(); ctx.restore();
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; haloText(ctx, s, p[0], p[1], col, P, font); return;
-  }
-  const p = [mid[0] + n[0] * 10 * side, mid[1] + n[1] * 10 * side];
-  if (ang > Math.PI / 2) ang -= Math.PI; if (ang < -Math.PI / 2) ang += Math.PI;
+  const poly = inward && inward.poly, outP = inward && inward.out, pt = inward && !poly && !outP ? inward : null;
+  if (poly || outP) { const P0 = poly || outP, i1 = inPoly(P0, [mid[0] + n[0] * 10, mid[1] + n[1] * 10]), i2 = inPoly(P0, [mid[0] - n[0] * 10, mid[1] - n[1] * 10]); side = i1 && !i2 ? 1 : i2 && !i1 ? -1 : (() => { const c = centroid(P0), d1 = Math.hypot(mid[0] + n[0] * 10 - c[0], mid[1] + n[1] * 10 - c[1]), d2 = Math.hypot(mid[0] - n[0] * 10 - c[0], mid[1] - n[1] * 10 - c[1]); return d1 < d2 ? 1 : -1; })(); if (outP) side = -side; }
+  else if (pt) { const p1 = [mid[0] + n[0] * 10, mid[1] + n[1] * 10], p2 = [mid[0] - n[0] * 10, mid[1] - n[1] * 10]; side = Math.hypot(p1[0] - pt[0], p1[1] - pt[1]) < Math.hypot(p2[0] - pt[0], p2[1] - pt[1]) ? 1 : -1; }
+  // a side too short for its number: the number sits just outside it, along the line, no leader
+  if (short && poly) side = -side;
+  const o1 = th / 2 + 2.5, room = Math.max(0, (L - tw) / 2 - 3), tries = [[o1, 0], [o1, room * 0.5], [o1, -room * 0.5], [o1, room], [o1, -room], [o1 + th, 0], [o1 + th, room * 0.6], [o1 + th, -room * 0.6]];
+  let p = null;
+  for (const [o, t] of tries) { const q = [mid[0] + n[0] * o * side + u[0] * t, mid[1] + n[1] * o * side + u[1] * t]; if (poly && !short && !inPoly(poly, q)) continue; if (!LB.hit(rotBox(q, tw + 3, th, ang))) { p = q; break; } }
+  if (!p) p = [mid[0] + n[0] * o1 * side, mid[1] + n[1] * o1 * side];
+  LB.add(rotBox(p, tw + 3, th, ang));
   ctx.save(); ctx.translate(p[0], p[1]); ctx.rotate(ang); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; haloText(ctx, s, 0, 0, col, P, font); ctx.restore();
+}
+/** a spot inside a closed shape (screen) for a w×h label: away from the walls and from the labels already placed */
+function labelSpot(S, w, h) {
+  const xs = S.map(q => q[0]), ys = S.map(q => q[1]), x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+  const edgeD = q => { let m = Infinity; for (let i = 0; i < S.length; i++) m = Math.min(m, distPtSeg(q, S[i], S[(i + 1) % S.length]).d); return m; };
+  const c0 = polyCentroid(S); let best = null; const N = 14;
+  for (let iy = 0; iy <= N; iy++) for (let ix = 0; ix <= N; ix++) {
+    const q = [x0 + (x1 - x0) * ix / N, y0 + (y1 - y0) * iy / N]; if (!inPoly(S, q)) continue;
+    const ed = edgeD(q), fits = ed > Math.max(w, h) / 2 + 1, free = !LB.hit(rotBox(q, w, h, 0));
+    const score = (free ? 1000 : 0) + (fits ? 500 : 0) + Math.min(ed, 40) - V.dist(q, c0) * 0.15;
+    if (!best || score > best.score) best = { q, score };
+  }
+  return best ? best.q : c0;
 }
 const ROAD = { ASPHALT: 'ASPHALT PAVEMENT', CONCRETE: 'CONCRETE PAVEMENT', DIRT: 'DIRT ROAD' };
 const ST_SUFFIX = /\b(ST|AVE|AV|PL|CIR|DR|BLVD|CT|LN|RD|WAY|TER|TERR|TRL|PKWY|HWY|PT|SQ|LOOP|PATH|XING|RUN|ROW|BND|CV|PASS)\.?$/;
@@ -2007,6 +2102,7 @@ function drawFrame(ctx, v, j, P, fo = {}) { // fo.noLot: field-notes sheet — n
     const [col, w, dash] = sty[L.kind] || [P.street, 1];
     for (const pc of streetPieces(j.frame, L)) { ctx.beginPath(); pc.forEach((p, i) => { const q = v.toS(p); i ? ctx.lineTo(...q) : ctx.moveTo(...q); }); ctx.strokeStyle = col; ctx.lineWidth = w; ctx.setLineDash(dash || []); ctx.stroke(); ctx.setLineDash([]); }
   }
+  for (const bk of g.breaks || []) { ctx.beginPath(); bk.pts.forEach((p, i) => { const q = v.toS(p); i ? ctx.lineTo(...q) : ctx.moveTo(...q); }); ctx.strokeStyle = P.street; ctx.lineWidth = 1.2; ctx.lineJoin = 'miter'; ctx.stroke(); }
   // street labels: road width + surface on the lot side of the centerline, name on the far side
   for (const lb of g.labels) {
     const q = v.toS(lb.at), uS = v.dirS ? v.dirS(lb.u) : [lb.u[0], -lb.u[1]], nS = v.dirS ? v.dirS(lb.nOut) : [lb.nOut[0], -lb.nOut[1]]; let ang = Math.atan2(uS[1], uS[0]); if (ang > Math.PI / 2) ang -= Math.PI; if (ang < -Math.PI / 2) ang += Math.PI;
@@ -2034,17 +2130,30 @@ function drawFrame(ctx, v, j, P, fo = {}) { // fo.noLot: field-notes sheet — n
     ctx.strokeStyle = found ? P.mon : P.muted; ctx.fillStyle = found ? P.mon : P.bg; ctx.lineWidth = 1.6;
     ctx.beginPath(); if (found && /^FN|^PK/.test(rec.type)) { ctx.moveTo(s[0], s[1] - 7); ctx.lineTo(s[0] + 6, s[1] + 5); ctx.lineTo(s[0] - 6, s[1] + 5); ctx.closePath(); } else ctx.arc(s[0], s[1], 5.5, 0, 2 * Math.PI);
     ctx.fill(); ctx.stroke();
-    const lbl = `${c.name}${found ? ' ' + (rec.type || 'found') + (rec.cap ? ' ' + rec.cap : '') : nf ? ' not found' : rec.status === 'set' ? ' SET' + (rec.cap ? ' ' + rec.cap : '') : ' ?'}${rec.point ? ' · ' + rec.point : ''}`;
+    const lbl = `${c.name}${found ? ' ' + (rec.type || 'found') + (rec.size ? ' ' + rec.size : '') + (rec.cap ? ' ' + rec.cap : '') : nf ? ' not found' : rec.status === 'set' ? ' SET IR&C' + (rec.size ? ' ' + rec.size : '') + (rec.cap ? ' ' + rec.cap : '') : ' ?'}${rec.point ? ' · ' + rec.point : ''}`;
     const dx = c.dx * 10, dy = c.dy * 14;
     ctx.textAlign = dx < 0 ? 'right' : 'left'; ctx.textBaseline = 'middle';
     haloText(ctx, lbl, s[0] + dx, s[1] + dy, found ? P.mon : P.muted, P);
   }
   if (g.misclose > 0.05 && !fo.noLot) { const xs = g.corners.map(c => v.toS(c.p)), q = [Math.min(...xs.map(a => a[0])), Math.min(...xs.map(a => a[1]))]; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; haloText(ctx, `Lot sides do not close by ${f2(g.misclose)}' — check the plat values`, q[0], q[1] - 26, P.warn, P, '600 11.5px "Roboto Condensed", sans-serif-condensed, sans-serif'); }
 }
+/** a closed 4-sided shape with square corners that is not a building: which two sides carry its numbers (one of each pair, preferring the side not on a wall) */
+function twoDims(j, el) {
+  if (!el.closed || !el.pts || el.pts.length !== 4 || (el.bul || []).some(b => b) || (TY[el.type] && TY[el.type].bldg)) return null;
+  const S = segs(el); for (let i = 0; i < 4; i++) { const a = V.norm(V.sub(S[i].b, S[i].a)), b = V.norm(V.sub(S[(i + 1) % 4].b, S[(i + 1) % 4].a)); if (Math.abs(V.dot(a, b)) > 0.05) return null; }
+  const onWall = sg => { const m = V.mul(V.add(sg.a, sg.b), .5); return j.elements.some(o => o !== el && o.pts && TY[o.type] && TY[o.type].bldg && segs(o).some(t => !t.bul && distPtSeg(m, t.a, t.b).d < 0.15)); };
+  const pick = (i, k) => { const di = dimOf(el, i), dk = dimOf(el, k), ti = di && di.tape != null, tk = dk && dk.tape != null; if (ti !== tk) return ti ? i : k; const wi = onWall(S[i]), wk = onWall(S[k]); if (wi !== wk) return wi ? k : i; return i; };
+  return new Set([pick(0, 2), pick(1, 3)]);
+}
 function drawElement(ctx, v, j, el, P, opts = {}) {
   if (el.type === 'util') {
     const q = v.toS(el.at); drawUtilSym(ctx, UT[el.util], q, (el.rot || 0) + (v.r || 0), P);
     if (opts.labels !== false) { ctx.textAlign = 'center'; ctx.textBaseline = 'top'; haloText(ctx, (UT[el.util].code || el.util) + (el.point ? ' · ' + el.point : ''), q[0], q[1] + 13, P[UT[el.util].col] || P.text, P, '11px "Roboto Condensed", sans-serif-condensed, sans-serif'); }
+    return;
+  }
+  if (el.type === 'mon') {
+    const q = v.toS(el.at); drawMonSym(ctx, el.mon, q, P, 1);
+    if (opts.labels !== false) { ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; const s = monText(el); ctx.font = '600 11.5px "Roboto Condensed", sans-serif-condensed, sans-serif'; const w = ctx.measureText(s).width; let at = [q[0] + 10, q[1] - 10]; for (const o of [[10, -10], [10, 12], [-10 - w, -10], [-10 - w, 12]]) { const c = [q[0] + o[0] + w / 2, q[1] + o[1]]; if (!LB.hit(rotBox(c, w + 4, 14, 0))) { at = [q[0] + o[0], q[1] + o[1]]; break; } } LB.add(rotBox([at[0] + w / 2, at[1]], w + 4, 14, 0)); haloText(ctx, s, at[0], at[1], el.mon === 'NF' ? P.muted : P.mon, P, '600 11.5px "Roboto Condensed", sans-serif-condensed, sans-serif'); }
     return;
   }
   if (el.type === 'text') { const q = v.toS(el.at); ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; haloText(ctx, el.text, q[0], q[1], P.text, P, '13px "Segoe UI", Roboto, sans-serif'); return; }
@@ -2061,22 +2170,28 @@ function drawElement(ctx, v, j, el, P, opts = {}) {
   // a small closed shape (porch, pad) has no room for its numbers inside: they go outside, except on a side it shares with a wall
   const small = el.closed && Math.min(Math.max(...scr.map(q => q[0])) - Math.min(...scr.map(q => q[0])), Math.max(...scr.map(q => q[1])) - Math.min(...scr.map(q => q[1]))) < 40;
   const shared = sg => { const m = V.mul(V.add(sg.a, sg.b), .5), u = V.norm(V.sub(sg.b, sg.a)); return j.elements.some(o => o !== el && o.pts && segs(o).some(t => !t.bul && V.dist(t.a, t.b) > 0.01 && Math.abs(V.cross(u, V.norm(V.sub(t.b, t.a)))) < 0.05 && distPtSeg(m, t.a, t.b).d < 0.15)); };
+  const scrPoly = el.closed ? polyScreen(v, el) : null, pad = el.type === 'equip' && el.closed && el.pts.length === 4;
+  const two = twoDims(j, el); // rectangles that are not buildings (porch, roofed, slab, pad…): one length and one width
   for (const s of segs(el)) {
+    if (two && !two.has(s.i)) continue;
     const d = dimOf(el, s.i); if (!d) continue; const val = dimVal(el, s.i); if (val == null) continue;
     if (d.src === 'same' && s.bul) continue;
     let a = v.toS(s.a), b = v.toS(s.b);
     if (s.bul) { const ap = arcPts(s.a, s.b, s.bul); const m = Math.floor(ap.length / 2); const p0 = v.toS(ap[m - 1]), p1 = v.toS(ap[m + 1]), mm = v.toS(ap[m]); const dx = (p1[0] - p0[0]) * 3, dy = (p1[1] - p0[1]) * 3; a = [mm[0] - dx, mm[1] - dy]; b = [mm[0] + dx, mm[1] + dy]; }
     const tag = d.src === 'GPS' ? ' G' : d.src === 'closure' ? ' B' : '';
-    const inw = small && !shared(s) ? V.sub(V.mul(V.add(a, b), 1), inward) : inward;
-    segLabel(ctx, a, b, (s.bul ? 'R ' : '') + f1(val) + tag, d.src === 'GPS' ? P.adopt : d.src === 'closure' ? P.close : d.src === 'same' ? P.same : P.text, P, inw);
+    const inw = !el.closed ? null : pad || (small && !shared(s)) ? { out: scrPoly } : { poly: scrPoly }; // closed shapes: numbers inside (pads and small shapes outside)
+    segLabel(ctx, a, b, (s.bul ? 'R ' : '') + f1(val) + "'" + tag, d.src === 'GPS' ? P.adopt : d.src === 'closure' ? P.close : d.src === 'same' ? P.same : P.text, P, inw);
   }
   if (el.angs) for (const [k, deg] of Object.entries(el.angs)) { const ia = interiorAt(el, +k); if (!ia) continue; const q = v.toS(el.pts[+k]); const a0 = -ia.back, a1 = -(ia.back + ia.sign * deg * D2R); ctx.beginPath(); ctx.arc(q[0], q[1], 13, Math.min(a0, a1), Math.max(a0, a1)); if (Math.abs(a1 - a0) > Math.PI) { ctx.beginPath(); ctx.arc(q[0], q[1], 13, Math.max(a0, a1), Math.min(a0, a1) + 2 * Math.PI); } ctx.strokeStyle = P.close; ctx.lineWidth = 1.2; ctx.stroke(); const am = (a0 + a1) / 2; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; haloText(ctx, `${deg}°`, q[0] + Math.cos(am) * 26, q[1] + Math.sin(am) * 26, P.close, P, '600 10.5px "Roboto Condensed", sans-serif-condensed, sans-serif'); }
   const sp = el.pts.map(p => v.toS(p)), big = Math.max(...sp.map(q => q[0])) - Math.min(...sp.map(q => q[0])) + Math.max(...sp.map(q => q[1])) - Math.min(...sp.map(q => q[1]));
   if (opts.labels !== false && opts.ids !== false && (big > 90 || selEl() === el)) {
-    const c = el.closed ? v.toS(centroid(el.pts)) : v.toS(V.mul(V.add(el.pts[0], el.pts[1]), .5));
     const cl = closure(el); let s = el.id, colr = P.muted;
     if (cl && cl.state === 'ok') { s += ' ✓'; colr = P.good; } else if (cl && cl.state === 'open') { s += ' Δ' + f1(Math.max(Math.abs(cl.mx), Math.abs(cl.my))); colr = P.warn; }
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; haloText(ctx, s, c[0], c[1] + (el.closed ? 0 : -14), colr, P, '600 11.5px "Roboto Condensed", sans-serif-condensed, sans-serif');
+    const fnt = '600 10.5px "Roboto Condensed", sans-serif-condensed, sans-serif'; ctx.font = fnt; const tw = ctx.measureText(s).width + 4;
+    let c; if (el.closed) c = labelSpot(scrPoly, tw, 13); // away from the walls and their numbers
+    else { const m = v.toS(V.mul(V.add(el.pts[0], el.pts[1]), .5)), a = v.toS(el.pts[0]), b = v.toS(el.pts[1]), nn = V.norm([a[1] - b[1], b[0] - a[0]]); c = [m[0], m[1] - 14]; for (const o of [-14, 14, -26, 26]) { const q = V.add(m, V.mul(nn[1] < 0 ? nn : V.mul(nn, -1), -o)); if (!LB.hit(rotBox(q, tw, 13, 0))) { c = q; break; } } }
+    LB.add(rotBox(c, tw, 13, 0));
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; haloText(ctx, s, c[0], c[1], colr, P, fnt);
   }
   if (el.links) for (const [vi, pid] of Object.entries(el.links)) { if (el.pts[+vi]) shotBubble(ctx, v, el, +vi, String(pid), !ptById(j, pid), el.off && el.off[vi], P); }
 }
@@ -2107,9 +2222,9 @@ function shotBubble(ctx, v, el, i, pid, miss, off, P) {
   if (U.bdrag && U.bdrag.el === el.id && U.bdrag.vi === i) { ctx.save(); ctx.globalAlpha = .25; ctx.fillStyle = col; ctx.beginPath(); ctx.arc(C[0], C[1], r + 6, 0, 2 * Math.PI); ctx.fill(); ctx.restore(); }
   ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = 1.3; ctx.beginPath(); ctx.moveTo(...tail); ctx.lineTo(...tip); ctx.stroke();
   const nn = [-d[1], d[0]]; ctx.beginPath(); ctx.moveTo(...tip); ctx.lineTo(...V.add(V.add(tip, V.mul(d, 6)), V.mul(nn, 3))); ctx.lineTo(...V.add(V.add(tip, V.mul(d, 6)), V.mul(nn, -3))); ctx.closePath(); ctx.fill();
-  ctx.beginPath(); ctx.arc(C[0], C[1], r, 0, 2 * Math.PI); ctx.fill();
-  if (off) { ctx.setLineDash([2, 2]); ctx.strokeStyle = P.text; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(C[0], C[1], r + 2, 0, 2 * Math.PI); ctx.stroke(); ctx.setLineDash([]); }
-  ctx.fillStyle = miss ? '#fff' : P.linkText; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(pid, C[0], C[1] + 0.5); ctx.restore();
+  ctx.beginPath(); ctx.arc(C[0], C[1], r, 0, 2 * Math.PI); ctx.fillStyle = P.bg; ctx.fill(); ctx.lineWidth = 1.4; ctx.stroke(); // a circle with the number inside, not a filled disc
+  if (off) { ctx.setLineDash([2, 2]); ctx.strokeStyle = P.text; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(C[0], C[1], r + 2.5, 0, 2 * Math.PI); ctx.stroke(); ctx.setLineDash([]); }
+  ctx.fillStyle = col; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(pid, C[0], C[1] + 0.5); LB.add([C[0] - r, C[1] - r, C[0] + r, C[1] + r]); ctx.restore();
 }
 function notesBounds(j, tight) {
   let b = [Infinity, Infinity, -Infinity, -Infinity];
@@ -2120,7 +2235,7 @@ function notesBounds(j, tight) {
   return b;
 }
 function fitNotes() { const c = canv.cvNotes; if (!c || c.w < 2) return; U.vn.fit(notesBounds(job()), c.w, c.h, viewPads(c.w)); }
-function previewColor(P) { const t = U.type; return t.startsWith('u:') || t === 'text' ? P.ink : P[TY[t].col]; }
+function previewColor(P) { const t = U.type; return t.startsWith('u:') || t.startsWith('m:') || t === 'text' ? P.ink : P[TY[t].col]; }
 function drawPreview(ctx, v, P) {
   const col = previewColor(P); ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.setLineDash([7, 5]); ctx.lineCap = 'round';
   const dot = p => { const q = v.toS(p); ctx.save(); ctx.setLineDash([]); ctx.fillStyle = P.sel; ctx.beginPath(); ctx.arc(q[0], q[1], 4, 0, 2 * Math.PI); ctx.fill(); ctx.restore(); };
@@ -2148,7 +2263,7 @@ function drawPreview(ctx, v, P) {
   ctx.restore();
 }
 function drawNotes(ctx, W, H, opt = {}) {
-  const P = opt.P || C(), v = opt.v || U.vn, j = job();
+  const P = opt.P || C(), v = opt.v || U.vn, j = job(); LB.reset();
   drawGrid(ctx, v, W, H, P);
   if (!j) return;
   drawFrame(ctx, v, j, P, { noLot: !!opt.export });
@@ -2171,7 +2286,8 @@ function drawNotes(ctx, W, H, opt = {}) {
     if (U.sepPick) hlSeg(U.sepPick, 6, .8, '1');
     if (U.mini && U.mini.hl) { const hl = U.mini.hl; (hl.segs || []).forEach(it => hlSeg(it, 6, .8)); if (hl.pt) { const q = v.toS(hl.pt); ctx.strokeStyle = P.sel; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(q[0], q[1], 13, 0, 2 * Math.PI); ctx.stroke(); } if (hl.area) { ctx.beginPath(); hl.area.forEach((p, i) => { const q = v.toS(p); i ? ctx.lineTo(...q) : ctx.moveTo(...q); }); ctx.closePath(); ctx.fillStyle = P.sel; ctx.globalAlpha = .16; ctx.fill(); ctx.globalAlpha = 1; } }
     if (rev && U.revMode === 'link' && !U.adj) { ctx.strokeStyle = P.sel; ctx.lineWidth = 1.2; ctx.globalAlpha = .7; for (const el of j.elements) if (el.pts) el.pts.forEach((p, i) => { if (el.links && el.links[i]) return; const q = v.toS(p); ctx.strokeRect(q[0] - 3.5, q[1] - 3.5, 7, 7); }); ctx.globalAlpha = 1; }
-    if (U.ldrag && U.ldrag.st && U.tab === 'notes') { const L = U.ldrag, el = j.elements.find(x => x.id === L.el), sg = el && segs(el)[L.seg]; if (sg) { const m = v.toS(V.mul(V.add(sg.a, sg.b), .5)), o0 = v.toS(V.mul(V.add(L.st.orig.get(el.id)[L.seg], L.st.orig.get(el.id)[(L.seg + 1) % el.pts.length]), .5)); ctx.save(); ctx.strokeStyle = P.sel; ctx.setLineDash([4, 4]); ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(...o0); ctx.lineTo(...m); ctx.stroke(); ctx.restore(); ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; haloText(ctx, `moved ${f2(Math.abs(L.st.d))}'`, m[0] + 10, m[1] - 10, P.sel, P, '600 12.5px "Roboto Condensed", sans-serif-condensed, sans-serif'); } }
+    if (U.ldrag && U.ldrag.st && U.ldrag.st.arc && U.tab === 'notes') { const L = U.ldrag, el = j.elements.find(x => x.id === L.el), sg = el && segs(el)[L.seg]; if (sg) { const ap = arcPts(sg.a, sg.b, sg.bul), m = v.toS(ap[Math.floor(ap.length / 2)]); ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; haloText(ctx, `R ${f1(L.st.d)}'`, m[0] + 10, m[1] - 10, P.sel, P, '600 12.5px "Roboto Condensed", sans-serif-condensed, sans-serif'); } }
+    else if (U.ldrag && U.ldrag.st && U.tab === 'notes') { const L = U.ldrag, el = j.elements.find(x => x.id === L.el), sg = el && segs(el)[L.seg]; if (sg) { const m = v.toS(V.mul(V.add(sg.a, sg.b), .5)), o0 = v.toS(V.mul(V.add(L.st.orig.get(el.id)[L.seg], L.st.orig.get(el.id)[(L.seg + 1) % el.pts.length]), .5)); ctx.save(); ctx.strokeStyle = P.sel; ctx.setLineDash([4, 4]); ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(...o0); ctx.lineTo(...m); ctx.stroke(); ctx.restore(); ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; haloText(ctx, `moved ${f2(Math.abs(L.st.d))}'`, m[0] + 10, m[1] - 10, P.sel, P, '600 12.5px "Roboto Condensed", sans-serif-condensed, sans-serif'); } }
     if (U.adj) {
       const el = j.elements.find(e => e.id === U.adj.el);
       ctx.fillStyle = P.bg; ctx.globalAlpha = .7; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1;
@@ -2204,7 +2320,7 @@ function gpsBounds(j) {
   const pad = Math.max(10, (b[2] - b[0]) * 0.05); return [b[0] - pad, b[1] - pad, b[2] + pad, b[3] + pad];
 }
 function fitGps() { const c = canv.cvGps; if (!c || c.w < 2) return; const b = gpsBounds(job()); if (b) U.vg.fit(b, c.w, c.h, viewPads(c.w)); }
-function drawGps(ctx, W, H) {
+function drawGps(ctx, W, H) { LB.reset();
   const P = C(), v = U.vg, j = job(); drawGrid(ctx, v, W, H, P); if (!j) return;
   const G = U.overlay ? guideTransform(j, v, W, H) : null, redrawn = new Set();
   if (G) {
@@ -2346,7 +2462,7 @@ function hitNotes(j, p, opts = {}) {
   }
   return best;
 }
-const isPlacing = () => U.type === 'text' || U.type.startsWith('u:');
+const isPlacing = () => U.type === 'text' || U.type.startsWith('u:') || U.type.startsWith('m:');
 const NotesH = {
   mode: () => U.tab === 'rev' ? (U.revMode === 'pan' ? 'pan' : 'x') : U.mode,
   changed: () => { afterView(); redraw(); },
@@ -2364,9 +2480,18 @@ const NotesH = {
     if (U.mode === 'select') {
       const el = selEl();
       if (el && j.status !== 'closed' && U.multi.length <= 1) {
+        // a selected side: grabbing its middle moves the side (or bends the curve); only its very ends move a corner
+        if (el.pts && U.multi.length === 1) {
+          const sg = segs(el)[U.multi[0].seg], h = hitNotes(j, p);
+          if (sg && h && h.el === el && h.seg === U.multi[0].seg) {
+            const a = U.vn.toS(sg.a), b = U.vn.toS(sg.b), Ls = sg.bul ? polyLen(arcPts(sg.a, sg.b, sg.bul).map(q => U.vn.toS(q))) : V.dist(a, b), r = Math.min(14, Ls * 0.22);
+            const da = V.dist(a, p), db = V.dist(b, p), n = el.pts.length;
+            if (da < r || db < r) { U.drag = { el: el.id, vi: da <= db ? sg.i : (sg.i + 1) % n, undone: false }; return 'drag'; }
+            U.ldrag = { el: el.id, seg: h.seg, w0: U.vn.toW(p), st: null }; return 'ldrag';
+          }
+        }
         if (el.pts) { for (let i = 0; i < el.pts.length; i++) if (V.dist(U.vn.toS(el.pts[i]), p) < 14) { U.drag = { el: el.id, vi: i, undone: false }; return 'drag'; } }
         else if (el.at && V.dist(U.vn.toS(el.at), p) < 16) { U.drag = { el: el.id, vi: -1, undone: false }; return 'drag'; }
-        if (el.pts && U.multi.length === 1) { const h = hitNotes(j, p); if (h && h.el === el && h.seg === U.multi[0].seg) { U.ldrag = { el: el.id, seg: h.seg, w0: U.vn.toW(p), st: null }; return 'ldrag'; } }
       }
       return 'tap';
     }
@@ -2389,7 +2514,8 @@ const NotesH = {
     }
     if (a.kind === 'ldrag' && U.ldrag && a.moved) {
       const j = job(), L = U.ldrag;
-      if (!L.st) { const el = j.elements.find(x => x.id === L.el); if (!el) return; pushUndo(); closeLen(true); closeMini(); L.st = lineDragStart(j, el, L.seg); if (!L.st) return; }
+      if (!L.st) { const el = j.elements.find(x => x.id === L.el); if (!el) return; pushUndo(); closeLen(true); closeMini(); L.st = arcDragStart(j, el, L.seg) || lineDragStart(j, el, L.seg); if (!L.st) return; }
+      if (L.st.arc) { arcDragApply(j, L.st, U.vn.toW(p)); afterView(); redraw(); return; }
       const d = Math.round(V.dot(V.sub(U.vn.toW(p), L.w0), L.st.nrm) * 20) / 20; lineDragApply(j, L.st, d); afterView(); redraw();
     }
     if (a.kind === 'sdrag' && U.sdrag && a.moved) {
@@ -2399,7 +2525,12 @@ const NotesH = {
     if (a.kind === 'drag' && U.drag) {
       const j = job(), el = j.elements.find(x => x.id === U.drag.el); if (!el) return;
       if (!U.drag.undone) { pushUndo(); U.drag.undone = true; }
-      const w = U.vn.toW(p); if (U.drag.vi >= 0) { const s = snapPt(j, w, 12, el.id); el.pts[U.drag.vi] = r2(s.p); U.snapB = s.kind ? { p: s.p, kind: s.kind } : null; } else el.at = r2(w);
+      const w = U.vn.toW(p);
+      if (U.drag.vi >= 0) {
+        if (!U.drag.st) U.drag.st = vertexDragStart(j, el, U.drag.vi);
+        if (U.drag.st.slide) { vertexDragApply(j, U.drag.st, w); U.snapB = null; } // a curve's end slides along its line
+        else { const s = snapPt(j, w, 12, el.id); vertexDragApply(j, U.drag.st, s.p); U.snapB = s.kind ? { p: s.p, kind: s.kind } : null; } // anything joined at this corner moves with it
+      } else el.at = r2(w);
       afterView(); redraw();
     }
   },
@@ -2410,6 +2541,7 @@ const NotesH = {
     if (a.kind === 'ldrag' && U.ldrag) {
       const j = job(), L = U.ldrag; U.ldrag = null;
       if (!L.st) return NotesH.tap(a.start, e);
+      if (L.st.arc) { logJ(j, `${L.el} side ${L.seg + 1}: curve now R ${f1(L.st.d)}'${L.st.both ? ' (still tangent to both lines)' : ''}`); for (const k of Object.keys(j.f3)) if (k.startsWith(L.el + ':')) { delete j.f3[k]; U.prompted.delete(k); } save(); render(); return; }
       if (Math.abs(L.st.d) < 0.001) { render(); return; }
       logJ(j, `Moved ${L.el} side ${L.seg + 1} ${f2(Math.abs(L.st.d))}' square to itself${L.st.others.length ? ' (kept joined: ' + L.st.others.join(', ') + ')' : ''}${L.st.changed.length ? '; lengths now ' + L.st.changed.join(', ') : ''}`);
       for (const id of L.st.orig.keys()) for (const k of Object.keys(j.f3)) if (k.startsWith(id + ':')) { delete j.f3[k]; U.prompted.delete(k); }
@@ -2422,13 +2554,15 @@ const NotesH = {
     }
     if (a.kind === 'drag' && U.drag) { const j = job(); const sb = U.snapB; U.snapB = null; if (U.drag.undone) { logJ(j, `Moved a corner of ${U.drag.el}`); save(); if (sb) flashPts([sb.p]); } U.drag = null; render(); }
   },
-  cancel() { U.bdrag = null; if (U.ldrag) { const L = U.ldrag; U.ldrag = null; if (L.st) { const j = job(); lineDragApply(j, L.st, 0); } } if (U.sdrag) { if (U.sdrag.undone) { U.sdrag.sp.at = U.sdrag.before || undefined; if (!U.sdrag.sp.at) delete U.sdrag.sp.at; } U.sdrag = null; } U.stroke = null; U.shape = null; U.drag = null; U.snapA = U.snapB = null; redraw(); },
+  cancel() { U.bdrag = null; if (U.ldrag) { const L = U.ldrag; U.ldrag = null; if (L.st) { const j = job(); if (L.st.m) { for (const [id, o] of L.st.m) { const e = j.elements.find(x => x.id === id); if (e) { e.pts = o.pts; e.dims = o.dims; } } if (L.st.arc) { const el = j.elements.find(x => x.id === L.st.el); if (el) el.bul[L.st.seg] = L.st.bul0; } } else lineDragApply(j, L.st, 0); } }
+    if (U.drag && U.drag.st) { const j = job(); for (const [id, o] of U.drag.st.m) { const e = j.elements.find(x => x.id === id); if (e) { e.pts = o.pts; e.dims = o.dims; } } } if (U.sdrag) { if (U.sdrag.undone) { U.sdrag.sp.at = U.sdrag.before || undefined; if (!U.sdrag.sp.at) delete U.sdrag.sp.at; } U.sdrag = null; } U.stroke = null; U.shape = null; U.drag = null; U.snapA = U.snapB = null; redraw(); },
   tap(p, e) {
     const j = job(); if (!j) return;
     if (U.tab === 'rev') return revTap(j, p);
     const touchWithPen = e && e.pointerType === 'touch' && U.penSeen;
     if (U.mode === 'select' || (DRAW_TOOLS.includes(U.mode) && touchWithPen)) {
       const sp = U.mode === 'select' && hitSep(j, p); if (sp) { U.multi = []; U.sel = null; render(); return sepPop(j, null, null, sp.sp); }
+      if (U.mode === 'select' && j.frame) { const hc = hitNotes(j, p, { corners: true, tol: 16 }); if (hc && hc.corner) { U.multi = []; U.sel = null; render(); return cornerPop(j, hc.corner.name); } }
       const h = hitNotes(j, p, { areas: true });
       if (!h || !h.el) { U.multi = []; U.sel = null; render(); return; }
       if (U.mode === 'select' && h.el.pts && h.seg != null) {
@@ -2436,7 +2570,7 @@ const NotesH = {
         if (k >= 0) U.multi.splice(k, 1); else if (e && (e.shiftKey || e.ctrlKey) || U.multi.length) U.multi.push(it); else U.multi = [it];
         U.sel = U.multi.length === 1 ? U.multi[0].el : null; if (U.sel) U.panel = null; render(); return;
       }
-      U.multi = []; U.sel = h.el.id; U.panel = null; render(); return;
+      U.multi = []; U.sel = h.el.id; U.panel = null; render(); if (h.el.type === 'mon' && editable(j, true)) monPop(j, h.el); return;
     }
     if (U.mode === 'poly' || U.mode === 'arc3') { if (editable(j)) buildTap(p); return; }
     if (U.mode === 'dim') { const sp = hitSep(j, p); if (sp) return sepPop(j, null, null, sp.sp); const h = hitNotes(j, p); if (h && h.el && h.seg != null) openLen(h.el, h.seg); else closeLen(); return; }
@@ -2559,6 +2693,7 @@ function finishStroke(sp) {
   const v = U.vn, P = sp.map(p => v.toW(p)), t = U.type;
   let px = 0; for (let i = 1; i < sp.length; i++) px += V.dist(sp[i - 1], sp[i]);
   if (t === 'text') { redraw(); textPop(P[0]); return; }
+  if (t.startsWith('m:')) { redraw(); monTap(j, sp[0], P[0], t.slice(2)); return; }
   if (t.startsWith('u:')) {
     const u = UT[t.slice(2)]; let rot = 0;
     if (u.pole && px > 14) rot = Math.atan2(P[P.length - 1][1] - P[0][1], P[P.length - 1][0] - P[0][0]);
@@ -2576,14 +2711,23 @@ function nextId(j, prefix) {
 }
 
 /* ---------------- length popup (after drawing, or the Length tool) ---------------- */
+const isPad = el => !!(el && el.type === 'equip' && el.closed && el.pts && el.pts.length === 4 && !(el.bul || []).some(b => b));
+function setPad(j, el, L, W) { // a pad (A/C, P/P, H/M): length and width, opposite sides equal
+  pushUndo(); el.dims = el.dims || {};
+  if (L != null) { el.dims[0] = { tape: L }; el.dims[2] = { adopted: L, src: 'same' }; }
+  if (W != null) { el.dims[1] = { tape: W }; el.dims[3] = { adopted: W, src: 'same' }; }
+  resetF3(j, el); if (L != null && W != null) rebuildRect(el, L, W);
+  logJ(j, `${el.id}: pad ${L != null ? f1(L) : '?'} × ${W != null ? f1(W) : '?'}`); save();
+}
+const padLW = el => { const SG = segs(el), d0 = dimOf(el, 0) || {}, d1 = dimOf(el, 1) || {}; return { L: d0.tape ?? d0.adopted ?? null, W: d1.tape ?? d1.adopted ?? null, gl: V.dist(SG[0].a, SG[0].b), gw: V.dist(SG[1].a, SG[1].b) }; };
 function startLen(el) {
   if (!el.pts) return;
-  U.len = { el: el.id, i: 0, flow: true, mode: el.shape === 'rect' ? 'rect' : el.shape === 'circle' ? 'radius' : 'side' };
+  U.len = { el: el.id, i: 0, flow: true, mode: el.shape === 'rect' || isPad(el) ? 'rect' : el.shape === 'circle' ? 'radius' : 'side' };
   showLen();
 }
 function openLen(el, i) {
   const j = job(); if (!editable(j)) return; U.sel = el.id;
-  U.len = { el: el.id, i, flow: false, mode: el.shape === 'circle' ? 'radius' : 'side' }; render(); showLen();
+  U.len = { el: el.id, i, flow: false, mode: el.shape === 'circle' ? 'radius' : isPad(el) ? 'rect' : 'side' }; render(); showLen();
 }
 function showLen(keepFocus) {
   const j = job(), L = U.len, pop = $('#lenPop'); if (!L || !j || U.tab !== 'notes') { pop.hidden = true; return; }
@@ -2593,8 +2737,8 @@ function showLen(keepFocus) {
   let h = `<div class="lh"><b>${el.id}</b><span>${L.mode === 'rect' ? esc(T.s || T.l) : L.mode === 'radius' ? 'radius' : SG.length > 1 ? `side ${L.i + 1}/${SG.length}` : esc(T.s || T.l)}</span><button class="lx" data-len="close" aria-label="Close" title="Close">${icon('x')}</button></div>`;
   const later = `<button class="ib" data-len="later" title="Later" aria-label="Later">${icon('hourglass')}</button>`, ok = `<button class="ib ok" data-len="ok" title="Accept" aria-label="Accept">${icon('check')}</button>`;
   if (L.mode === 'rect') {
-    const d0 = dimOf(el, 0) || {}, d1 = dimOf(el, 1) || {};
-    h += `<div class="lrow"><label>Width<input id="lenA" inputmode="decimal" autocomplete="off" placeholder="${f1(V.dist(SG[0].a, SG[0].b))}" value="${d0.tape != null ? f1(d0.tape) : ''}"></label><label>Depth<input id="lenB" inputmode="decimal" autocomplete="off" placeholder="${f1(V.dist(SG[1].a, SG[1].b))}" value="${d1.tape != null ? f1(d1.tape) : ''}"></label></div><div class="lbtns">${later}${ok}</div>`;
+    const lw = padLW(el), pad = isPad(el);
+    h += `<div class="lrow"><label>${pad ? 'Length' : 'Width'}<input id="lenA" inputmode="decimal" autocomplete="off" placeholder="${f1(lw.gl)}" value="${lw.L != null ? f1(lw.L) : ''}"></label><label>${pad ? 'Width' : 'Depth'}<input id="lenB" inputmode="decimal" autocomplete="off" placeholder="${f1(lw.gw)}" value="${lw.W != null ? f1(lw.W) : ''}"></label></div><div class="lbtns">${later}${ok}</div>`;
   } else {
     const s = SG[L.i], d = dimOf(el, L.i) || {}, arc = !!s.bul, est = arc ? arcGeom(s.a, s.b, s.bul).r : V.dist(s.a, s.b), ia = !arc && L.mode === 'side' ? interiorAt(el, L.i) : null;
     h += `<div class="lin"><label>${arc ? 'Radius' : 'Length'}<input id="lenA" inputmode="decimal" autocomplete="off" placeholder="${f1(est)}" value="${d.tape != null ? f1(d.tape) : ''}"></label>${ia ? `<label style="max-width:58px">Angle°<input id="lenAng" inputmode="decimal" autocomplete="off" placeholder="${Math.round(ia.deg * 2) / 2}" value="${el.angs && el.angs[L.i] != null ? el.angs[L.i] : ''}"></label>` : ''}${later}${ok}</div>`;
@@ -2605,7 +2749,7 @@ function showLen(keepFocus) {
   $$('input', pop).forEach(x => x.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); if (x.id === 'lenA' && $('#lenB')) $('#lenB').focus(); else lenAccept(); } if (e.key === 'Escape') closeLen(); });
 }
 function positionLen() {
-  const pop = $('#lenPop'); if (pop.hidden || !U.len) return; const j = job(); const el = j && j.elements.find(e => e.id === U.len.el); if (!el) return;
+  const pop = $('#lenPop'); if (pop.hidden || !U.len) return; if (POP.place(pop, 'len')) return; const j = job(); const el = j && j.elements.find(e => e.id === U.len.el); if (!el) return;
   const i = U.len.mode === 'rect' ? 0 : U.len.i, s = segs(el)[i]; if (!s) return;
   const ap = arcPts(s.a, s.b, s.bul), mid = ap[Math.floor(ap.length / 2)], m = U.vn.toS(mid);
   const a = U.vn.toS(s.a), b = U.vn.toS(s.b); let n = V.norm([-(b[1] - a[1]), b[0] - a[0]]);
@@ -2614,8 +2758,8 @@ function positionLen() {
   const c = canv.cvNotes, w = pop.offsetWidth || 160, h = pop.offsetHeight || 70, q = V.add(m, V.mul(n, 18));
   const x = Math.abs(n[0]) < 0.5 ? q[0] - w / 2 : n[0] > 0 ? q[0] : q[0] - w;
   const y = Math.abs(n[1]) < 0.5 ? q[1] - h / 2 : n[1] > 0 ? q[1] : q[1] - h;
-  const minX = (U.railsOff ? 0 : $('#railL').offsetWidth + 12) + 10, maxX = c.w - (U.railsOff ? 0 : $('#railR').offsetWidth + 12) - 10 - w;
-  pop.style.left = Math.max(minX, Math.min(maxX, x)) + 'px'; pop.style.top = Math.max(10, Math.min(c.h - h - 56, y)) + 'px';
+  const minX = (U.railsOff || isPhoneUI() ? 0 : $('#railL').offsetWidth + 12) + 8, maxX = c.w - (U.railsOff || isPhoneUI() ? 0 : $('#railR').offsetWidth + 12) - 8 - w;
+  pop.style.left = Math.max(minX, Math.min(maxX, x)) + 'px'; pop.style.top = Math.max(10, Math.min(c.h - h - (isPhoneUI() ? 140 : 56), y)) + 'px';
 }
 function closeLen(silent) { const had = !!U.len; U.len = null; $('#lenPop').hidden = true; if (had && !silent) redraw(); }
 function readLen(id) { const x = $('#' + id); if (!x) return null; const v = x.value.trim(); if (v === '') return null; const n = parseFloat(v.replace(',', '.')); return (isFinite(n) && n > 0 && n < 5000) ? Math.round(n * 100) / 100 : NaN; }
@@ -2789,6 +2933,31 @@ const PlatH = {
 /* ================================================================
    SMALL FLOATING POPUP (text notes, materials, links, GPS lengths, IDs)
    ================================================================ */
+/* floating windows the crew can drag out of the way: the spot is remembered (double-tap the grip to put it back) */
+const POP = {
+  pos: (() => { try { return JSON.parse(localStorage.getItem('crew.popPos') || '{}') || {}; } catch (e) { return {}; } })(),
+  get(k) { return this.pos[k] || null; },
+  set(k, x, y) { this.pos[k] = { x: Math.round(x), y: Math.round(y) }; this.keep(); },
+  clear(k) { delete this.pos[k]; this.keep(); },
+  keep() { try { localStorage.setItem('crew.popPos', JSON.stringify(this.pos)); } catch (e) { } },
+  place(el, k) { const p = this.get(k); if (!p) return false; const ws = $('#ws'), W = ws.clientWidth, H = ws.clientHeight, w = el.offsetWidth, h = el.offsetHeight; el.style.left = Math.max(4, Math.min(W - w - 4, p.x)) + 'px'; el.style.top = Math.max(4, Math.min(H - h - this.foot(), p.y)) + 'px'; return true; },
+  foot() { return isPhoneUI() ? 134 : 4; }, // keep clear of the phone's tool docks
+};
+function makeDraggable(el, key, handleSel, after) {
+  let st = null, lastTap = 0;
+  el.addEventListener('pointerdown', e => {
+    const h = e.target.closest(handleSel); if (!h || !el.contains(h) || e.target.closest('button,input,select,textarea,a,label')) return;
+    const now = Date.now(); if (now - lastTap < 320) { POP.clear(key); lastTap = 0; if (after) after(true); return; } lastTap = now;
+    st = { id: e.pointerId, x: e.clientX, y: e.clientY, l: el.offsetLeft, t: el.offsetTop, moved: false }; try { h.setPointerCapture(e.pointerId); } catch (x) { } e.preventDefault();
+  });
+  el.addEventListener('pointermove', e => {
+    if (!st || e.pointerId !== st.id) return; const dx = e.clientX - st.x, dy = e.clientY - st.y; if (!st.moved && Math.hypot(dx, dy) < 4) return; st.moved = true;
+    const ws = $('#ws'), W = ws.clientWidth, H = ws.clientHeight, x = Math.max(4, Math.min(W - el.offsetWidth - 4, st.l + dx)), y = Math.max(4, Math.min(H - el.offsetHeight - POP.foot(), st.t + dy));
+    el.style.left = x + 'px'; el.style.top = y + 'px'; el.style.right = 'auto'; el.style.bottom = 'auto'; POP.pos[key] = { x, y };
+  });
+  const end = e => { if (!st || e.pointerId !== st.id) return; if (st.moved) { POP.keep(); if (after) after(false); } st = null; };
+  el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
+}
 const IB = (k, ic, title, cls = '') => `<button class="ib ${cls}" data-mp="${k}" title="${esc(title)}" aria-label="${esc(title)}">${icon(ic)}</button>`;
 function miniPop(o) {
   const pop = $('#miniPop'); if (U.mini && U.mini.onClose) { const c = U.mini.onClose; U.mini = null; c(); }
@@ -2801,20 +2970,73 @@ function miniPop(o) {
   redraw();
 }
 function placeMini() {
-  const o = U.mini, pop = $('#miniPop'); if (!o || pop.hidden) return;
+  const o = U.mini, pop = $('#miniPop'); if (!o || pop.hidden) return; if (POP.place(pop, 'mini')) return;
   const ws = $('#ws'), W = ws.clientWidth, H = ws.clientHeight, at = typeof o.at === 'function' ? o.at() : o.at; if (!at) return;
   const w = pop.offsetWidth, h = pop.offsetHeight;
-  const minX = (U.railsOff ? 0 : $('#railL').offsetWidth + 12) + 10, maxX = W - (U.railsOff ? 0 : $('#railR').offsetWidth + 12) - 10 - w;
+  const minX = (U.railsOff || isPhoneUI() ? 0 : $('#railL').offsetWidth + 12) + 8, maxX = W - (U.railsOff || isPhoneUI() ? 0 : $('#railR').offsetWidth + 12) - 8 - w;
   let x = at[0] + 16, y = at[1] - h - 14; if (y < 10) y = at[1] + 16; if (x > maxX) x = at[0] - w - 16;
-  pop.style.left = Math.max(minX, Math.min(maxX, x)) + 'px'; pop.style.top = Math.max(10, Math.min(H - h - 10, y)) + 'px';
+  pop.style.left = Math.max(minX, Math.min(maxX, x)) + 'px'; pop.style.top = Math.max(10, Math.min(H - h - (isPhoneUI() ? 140 : 10), y)) + 'px';
 }
 function closeMini() { const o = U.mini; if (!o) return; U.mini = null; $('#miniPop').hidden = true; if (o.onClose) o.onClose(); redraw(); }
+makeDraggable($('#miniPop'), 'mini', '.lh', reset => { if (reset) placeMini(); });
+makeDraggable($('#lenPop'), 'len', '.lh', reset => { if (reset) positionLen(); });
+makeDraggable($('#conBar'), 'con', '.grip', reset => { if (reset) positionConBar(); });
+makeDraggable($('#panel'), 'panel', '.fhead', reset => { if (reset) renderPanel(); });
 $('#miniPop').addEventListener('click', e => {
   const b = e.target.closest('[data-mp]'); if (!b || !U.mini) return; e.preventDefault(); e.stopPropagation();
   const k = b.dataset.mp; if (k === 'x') return closeMini();
   try { U.mini.onClick && U.mini.onClick(k, b, $('#miniPop')); } catch (err) { console.error(err); toast('Something went wrong: ' + err.message, 'crit'); }
 });
 const wsPt = w => U.vn.toS(w);
+
+/* monuments: a lot corner gets its record (found / set / not found, size, cap); anywhere else a monument mark */
+function monTap(j, sp, w, kind) {
+  if (!editable(j)) return;
+  if (j.frame) { const hc = hitNotes(j, sp, { corners: true, tol: 22 }); if (hc && hc.corner) return cornerPop(j, hc.corner.name, kind); }
+  pushUndo(); const el = { id: nextId(j, 'M'), type: 'mon', mon: kind, at: r2(w), size: '', cap: '' }; j.elements.push(el);
+  logJ(j, `Placed ${monLabel(kind)} ${el.id}`); save(); render(); monPop(j, el);
+}
+function monFields(cur) {
+  return `<div class="mchips">${MON_PICK.map(([k, l]) => `<button class="mchip${cur.kind === k ? ' on' : ''}" data-mp="kind:${k}" title="${esc(l)}">${esc(monLabel(k))}</button>`).join('')}</div>
+    <div class="mchips">${MON_SIZES.map(x => `<button class="mchip${cur.size === x ? ' on' : ''}" data-mp="size:${esc(x)}">${esc(x)}</button>`).join('')}</div>
+    <div class="mchips">${CAP_PRE.map(x => `<button class="mchip" data-mp="pre:${esc(x)}">${esc(x.trim())}</button>`).join('')}</div>
+    <div class="lin"><label>Cap / I.D.<input id="mpCap" value="${esc(cur.cap || '')}" placeholder="LB 6754" autocomplete="off" autocapitalize="characters"></label>${IB('ok', 'check', 'Save', 'ok')}</div>`;
+}
+function monClick(cur, k, b, root, done) {
+  if (k.startsWith('kind:')) { cur.kind = k.slice(5); $$('[data-mp^="kind:"]', root).forEach(x => x.classList.toggle('on', x === b)); return; }
+  if (k.startsWith('size:')) { const v = k.slice(5); cur.size = cur.size === v ? '' : v; $$('[data-mp^="size:"]', root).forEach(x => x.classList.toggle('on', x === b && !!cur.size)); return; }
+  if (k.startsWith('pre:')) { const inp = $('#mpCap', root); inp.value = k.slice(4); inp.focus(); return; }
+  if (k === 'ok') { cur.cap = $('#mpCap', root).value.trim().toUpperCase(); done(); }
+}
+function cornerPop(j, name, kind) {
+  const rec = cornerRec(j, name), cur = { kind: kind || (rec.status === 'notfound' ? 'NF' : rec.status === 'set' ? 'SET' : rec.type && rec.type !== 'Other' ? rec.type : 'FIR'), size: rec.size || '', cap: rec.cap || '' };
+  const g = lotGeom(j.frame), c = g.corners.find(x => x.name === name); if (!c) return;
+  miniPop({
+    head: `<b>${esc(name)} lot corner</b><span>${rec.status ? esc(rec.status === 'notfound' ? 'not found' : rec.status) : 'what is there?'}</span>`, at: () => wsPt(c.p), focus: false, hl: { pt: c.p },
+    html: monFields(cur),
+    onClick(k, b, root) {
+      monClick(cur, k, b, root, () => {
+        if (!editable(j)) return; pushUndo();
+        if (cur.kind === 'NF') { rec.status = 'notfound'; rec.type = ''; }
+        else if (cur.kind === 'SET') { rec.status = 'set'; rec.type = 'SET'; }
+        else { rec.status = 'found'; rec.type = cur.kind; }
+        rec.size = cur.size; rec.cap = cur.kind === 'NF' ? '' : cur.cap;
+        logJ(j, `${name} corner: ${monLabel(cur.kind)}${rec.size ? ' ' + rec.size : ''}${rec.cap ? ' ' + rec.cap : ''}`); save(); closeMini(); render();
+      });
+    },
+  });
+}
+function monPop(j, el) {
+  const cur = { kind: el.mon, size: el.size || '', cap: el.cap || '' };
+  miniPop({
+    head: `<b>${esc(el.id)}</b><span>monument</span>`, at: () => wsPt(el.at), focus: false, hl: { pt: el.at },
+    html: monFields(cur) + `<div class="lbtns"><button class="ib no" data-mp="del" title="Delete" aria-label="Delete">${icon('trash')}</button></div>`,
+    onClick(k, b, root) {
+      if (k === 'del') { pushUndo(); j.elements = j.elements.filter(x => x !== el); logJ(j, `Deleted ${el.id}`); save(); closeMini(); render(); return; }
+      monClick(cur, k, b, root, () => { pushUndo(); el.mon = cur.kind; el.size = cur.size; el.cap = cur.kind === 'NF' ? '' : cur.cap; logJ(j, `${el.id}: ${monText(el)}`); save(); closeMini(); render(); });
+    },
+  });
+}
 
 /* text note: small popup where you tapped */
 function textPop(at, el) {
@@ -2861,20 +3083,40 @@ function chainOf(j, el) {
   }
   return { pts, members };
 }
-function onBldg(j, p) {
+const WALL_TOL = 0.75; // an area's line counts as ending on a wall within this many feet (finger drawing)
+function onBldg(j, p, tol = EPS_JOIN, only) {
   let best = null;
   for (const el of j.elements) {
-    if (!el.pts || !el.closed || !TY[el.type] || !TY[el.type].bldg) continue; const n = el.pts.length;
-    for (let i = 0; i < n; i++) { const r = distPtSeg(p, el.pts[i], el.pts[(i + 1) % n]); if (r.d < EPS_JOIN && (!best || r.d < best.d)) best = { el, i, t: r.t, d: r.d, q: r.q }; }
+    if (!el.pts || !el.closed || !TY[el.type] || !TY[el.type].bldg || (only && el !== only) || el.bul.some(b => b)) continue; const n = el.pts.length;
+    for (let i = 0; i < n; i++) { const r = distPtSeg(p, el.pts[i], el.pts[(i + 1) % n]); if (r.d < tol && (!best || r.d < best.d)) best = { el, i, t: r.t, d: r.d, q: r.q }; }
   }
   return best;
 }
-function wallPath(el, A, B) {
+/** where a chain end first meets a building: the end itself if it stops on (or near) a wall, else the first crossing when it overshoots into the building */
+function chainEndOnBldg(j, P, atHead) {
+  const Q = atHead ? P.slice().reverse() : P, e = Q[Q.length - 1];
+  const near = onBldg(j, e, Math.max(WALL_TOL, Math.min(3, 12 / (U.vn.k || 1)))); if (near) return { hit: near, cut: Q.length - 1 };
+  for (const el of j.elements) {
+    if (!el.pts || !el.closed || !TY[el.type] || !TY[el.type].bldg || el.bul.some(b => b) || !inPoly(el.pts, e)) continue;
+    const n = el.pts.length;
+    for (let k = Q.length - 1; k > 0; k--) { // walk back from the end until the chain comes out of the building
+      const a = Q[k - 1], b = Q[k]; let bestT = null, bi = -1, bq = null;
+      for (let i = 0; i < n; i++) { const A = el.pts[i], B = el.pts[(i + 1) % n], h = raySeg(a, V.sub(b, a), A, B); if (h && h.t >= -1e-6 && h.t <= 1 + 1e-6 && (bestT == null || h.t < bestT)) { bestT = h.t; bi = i; bq = h.q; } }
+      if (bq) { const r = distPtSeg(bq, el.pts[bi], el.pts[(bi + 1) % n]); return { hit: { el, i: bi, t: r.t, d: 0, q: r.q }, cut: k - 1, q: bq }; }
+    }
+  }
+  return null;
+}
+function wallPath(el, A, B, chain) {
   const n = el.pts.length, fw = [A.q], bw = [A.q];
   if (A.i === B.i && B.t >= A.t) fw.push(B.q); else { let i = (A.i + 1) % n; for (let k = 0; k <= n; k++) { fw.push(el.pts[i]); if (i === B.i) break; i = (i + 1) % n; } fw.push(B.q); }
   if (A.i === B.i && B.t <= A.t) bw.push(B.q); else { let i = A.i; for (let k = 0; k <= n; k++) { bw.push(el.pts[i]); if (i === (B.i + 1) % n) break; i = (i - 1 + n) % n; } bw.push(B.q); }
   const len = P => { let s = 0; for (let i = 1; i < P.length; i++) s += V.dist(P[i - 1], P[i]); return s; };
-  return len(fw) <= len(bw) ? fw : bw;
+  if (!chain) return len(fw) <= len(bw) ? fw : bw;
+  // follow the building's own outline on the side the area is on: the closing path must not wrap the building inside the area
+  const score = w => { const poly = chain.concat(w.slice(1, -1)), A2 = Math.abs(polyArea(poly)); let inside = 0; for (let i = 0; i < n; i++) { const a = el.pts[i], b = el.pts[(i + 1) % n], m = V.add(V.mul(V.add(a, b), .5), V.mul(V.norm([a[1] - b[1], b[0] - a[0]]), (polyArea(el.pts) > 0 ? 1 : -1) * 0.3)); if (inPoly(poly, m)) inside++; } return { w, inside, A2 }; };
+  const f = score(fw), b = score(bw);
+  return (f.inside !== b.inside ? (f.inside < b.inside ? f : b) : (f.A2 <= b.A2 ? f : b)).w;
 }
 function regionOf(j, el) {
   if (!el || !el.pts) return null;
@@ -2882,8 +3124,14 @@ function regionOf(j, el) {
   const ch = chainOf(j, el), P = ch.pts; if (P.length < 3) return null;
   const head = P[0], tail = P[P.length - 1];
   if (P.length >= 4 && V.dist(head, tail) < EPS_JOIN) return { poly: P.slice(0, -1), members: ch.members };
-  const A = onBldg(j, tail), B = onBldg(j, head);
-  if (A && B && A.el === B.el) { const w = wallPath(A.el, A, B); return { poly: P.concat(w.slice(1, -1)), members: ch.members, wall: A.el.id }; }
+  const eT = chainEndOnBldg(j, P, false), eH = chainEndOnBldg(j, P, true);
+  if (eT && eH && eT.hit.el === eH.hit.el) {
+    // trim an overshoot into the building, then close along the building's outline
+    let Q = P.slice(0, eT.cut + 1); if (eT.q) Q.push(eT.q); else Q[Q.length - 1] = eT.hit.q;
+    const hc = P.length - 1 - eH.cut; Q = Q.slice(hc); if (eH.q) Q.unshift(eH.q); else Q[0] = eH.hit.q;
+    if (Q.length < 2) return null;
+    const w = wallPath(eT.hit.el, eT.hit, eH.hit, Q); return { poly: Q.concat(w.slice(1, -1)), members: ch.members, wall: eT.hit.el.id, ends: [{ from: P[P.length - 1], to: Q[Q.length - 1], cut: eT.q ? eT.cut : null }, { from: P[0], to: Q[0], cut: eH.q ? eH.cut : null, head: true }] };
+  }
   return null;
 }
 const areaOf = (j, elId) => j.elements.find(a => a.type === 'area' && a.members.includes(elId)) || null;
@@ -2897,6 +3145,13 @@ function pruneRefs(j) {
 function checkArea(j, el, force) {
   if (!el || !isAreaType(el.type) || U.tab !== 'notes') return false;
   const r = regionOf(j, el); if (!r || Math.abs(polyArea(r.poly)) < 1) return false;
+  if (r.ends) for (const e of r.ends) { // put the line's end exactly on the wall (and cut an overshoot into the building)
+    if (V.dist(e.from, e.to) < 0.005) continue;
+    const m = r.members.map(id => j.elements.find(x => x.id === id)).find(x => x && !x.closed && (V.dist(x.pts[0], e.from) < 1e-6 || V.dist(x.pts[x.pts.length - 1], e.from) < 1e-6)); if (!m) continue;
+    const atStart = V.dist(m.pts[0], e.from) < 1e-6;
+    if (e.cut != null && r.members.length === 1 && !m.bul.some(b => b)) { const keep = e.head ? m.pts.length - 1 - e.cut : e.cut; if (e.head) { m.pts = [e.to].concat(m.pts.slice(keep)); m.bul = m.bul.slice(m.bul.length - (m.pts.length - 1)); } else { m.pts = m.pts.slice(0, keep + 1).concat([e.to]); m.bul = m.bul.slice(0, m.pts.length - 1); } m.pts = m.pts.map(r2); m.dims = {}; }
+    else { const k = atStart ? 0 : m.pts.length - 1; m.pts[k] = r2(e.to); }
+  }
   const ex = j.elements.find(a => a.type === 'area' && a.members.some(m => r.members.includes(m)));
   if (ex && !force) { ex.members = r.members; save(); return false; }
   areaPop(j, TY[el.type].area, r, ex);
@@ -2922,9 +3177,10 @@ function drawArea(ctx, v, j, a, P) {
   const S = r.poly.map(p => v.toS(p)), col = a.kind === 'equip' ? P.impr : P.bldg;
   if (/POOL/.test(a.label)) { ctx.beginPath(); S.forEach((q, i) => i ? ctx.lineTo(...q) : ctx.moveTo(...q)); ctx.closePath(); ctx.fillStyle = P.waterFill; ctx.fill(); }
   if (a.kind === 'roof' && r.poly.length === 4 && !(r.members.length === 1 && (j.elements.find(e => e.id === r.members[0]) || {}).closed)) { ctx.beginPath(); ctx.moveTo(...S[0]); ctx.lineTo(...S[2]); ctx.moveTo(...S[1]); ctx.lineTo(...S[3]); ctx.strokeStyle = col; ctx.lineWidth = 1; ctx.stroke(); }
-  const c = v.toS(polyCentroid(r.poly)), xs = S.map(q => q[0]), ys = S.map(q => q[1]), bw = Math.max(...xs) - Math.min(...xs), bh = Math.max(...ys) - Math.min(...ys);
+  const xs = S.map(q => q[0]), ys = S.map(q => q[1]), bw = Math.max(...xs) - Math.min(...xs), bh = Math.max(...ys) - Math.min(...ys);
   const lines = areaLines(a), mx = Math.max(...lines.map(l => l.length));
   const fs = Math.max(8, Math.min(13, bw * 0.9 / (mx * 0.56), bh * 0.8 / (lines.length * 1.2)));
+  const bwT = mx * fs * 0.58 + 4, bhT = lines.length * fs * 1.15 + 2, c = a.kind === 'equip' ? v.toS(polyCentroid(r.poly)) : labelSpot(S, bwT, bhT); LB.add(rotBox(c, bwT, bhT, 0));
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   lines.forEach((l, i) => haloText(ctx, l, c[0], c[1] + (i - (lines.length - 1) / 2) * fs * 1.15, a.kind === 'equip' ? P.text : col, P, `600 ${fs.toFixed(1)}px "Roboto Condensed", sans-serif-condensed, sans-serif`));
   if (selEl() === a) { ctx.beginPath(); S.forEach((q, i) => i ? ctx.lineTo(...q) : ctx.moveTo(...q)); ctx.closePath(); ctx.strokeStyle = P.sel; ctx.globalAlpha = .5; ctx.lineWidth = 6; ctx.stroke(); ctx.globalAlpha = 1; }
@@ -2985,10 +3241,27 @@ function applyConstraint(kind) {
     if (!arc) return toast('Tangent needs an arc: select a line and an arc.', 'warn');
     const ce = closestEnds(other.s, arc.s); if (ce.d > Math.max(1.5, 18 / U.vn.k)) return toast('Tangent works where the arc meets the line. Draw the arc from the end of the line.', 'warn', 5000);
     pushUndo();
-    const n = arc.el.pts.length, ai = arc.s.i, bi = (arc.s.i + 1) % n, S = ce.pa.slice();
-    if (ce.kb === 'a') arc.el.pts[ai] = r2(S); else arc.el.pts[bi] = r2(S);
-    const s2 = segs(arc.el)[ai], u = travelInto(other.s, S), ch = V.norm(V.sub(s2.b, s2.a));
-    arc.el.bul[ai] = ce.kb === 'a' ? Math.tan(-angBetween(ch, u) / 2) : Math.tan(angBetween(ch, V.mul(u, -1)) / 2);
+    const n = arc.el.pts.length, ai = arc.s.i, bi = (arc.s.i + 1) % n, S = ce.pa.slice(), endN = ce.kb, endO = endN === 'a' ? 'b' : 'a';
+    const tan = arc.el.tan = arc.el.tan || {}, t = tan[ai] = tan[ai] || {}, ref = { el: other.el.id, seg: other.s.i };
+    const prev = t[endO] && !(t[endO].el === ref.el && t[endO].seg === ref.seg) && segOf(j, t[endO]);
+    if (endN === 'a') arc.el.pts[ai] = r2(S); else arc.el.pts[bi] = r2(S);
+    t[endN] = ref;
+    if (prev && !prev.s.bul) {
+      // tangent to both lines: the end already tangent stays; this end slides along its line to where a fillet meets it
+      const T = endO === 'a' ? arc.el.pts[ai] : arc.el.pts[bi], d1 = V.norm(V.sub(prev.s.b, prev.s.a)), d2 = V.norm(V.sub(other.s.b, other.s.a)), den = V.cross(d1, d2);
+      let S2;
+      if (Math.abs(den) < 1e-6) { const pr = V.add(other.s.a, V.mul(d2, V.dot(V.sub(T, other.s.a), d2))); S2 = pr; } // parallel lines: a half circle
+      else { const X = V.add(prev.s.a, V.mul(d1, V.cross(V.sub(other.s.a, prev.s.a), d2) / den)), tl = V.dist(T, X), side = V.dot(V.sub(S, X), d2) >= 0 ? 1 : -1; S2 = V.add(X, V.mul(d2, side * tl)); }
+      const dims0 = snapDims([{ el: arc.el }, { el: other.el }]), list = [{ el: arc.el, vi: endN === 'a' ? ai : bi }, ...jointPartners(j, arc.el, endN === 'a' ? ai : bi)];
+      moveJoint(j, list, S2, dims0);
+      const s3 = segs(arc.el)[ai], u1 = tanRefDir(j, t[endO], endO === 'a' ? s3.a : s3.b);
+      if (u1) arc.el.bul[ai] = bulgeForTan(s3.a, s3.b, endO, u1);
+      carryDims(arc.el, dims0); carryDims(other.el, dims0);
+      logJ(j, `${arc.el.id} side ${ai + 1} made tangent to both ${prev.el.id} side ${prev.s.i + 1} and ${other.el.id} side ${other.s.i + 1} (R ${f1(arcGeom(s3.a, s3.b, arc.el.bul[ai]).r)}')`);
+      flashPts([S2]); save(); render(); toast('Tangent to both lines', 'good', 2500); return;
+    }
+    const s2 = segs(arc.el)[ai], u = travelInto(other.s, S);
+    arc.el.bul[ai] = bulgeForTan(s2.a, s2.b, endN, u);
     logJ(j, `${arc.el.id} side ${ai + 1} made tangent to ${other.el.id} side ${other.s.i + 1}`); flashPts([S]); save(); render(); toast('Tangent arc', 'good', 2000);
   }
 }
@@ -3000,22 +3273,123 @@ function renderConBar() {
   const cb = (k, ic, l, on) => `<button class="cb" data-act="con:${k}"${on ? '' : ' disabled'} title="${esc(l)}">${icon(ic)}<span>${esc(l)}</span></button>`;
   bar.innerHTML = (two ? cb('par', 'par', 'Parallel', bothStraight) + cb('perp', 'perp', 'Perpend.', bothStraight) + cb('tan', 'tan', 'Tangent', hasArc) + cb('meet', 'line', 'Meet', bothStraight) + cb('angle', 'angle', 'Angle', bothStraight) + cb('sep', 'sep', 'Separation', bothStraight) : `<span class="ct">${items.length} lines</span>`)
     + `<button class="cb" data-act="con:clear" title="Clear the selection">${icon('x')}<span>Clear</span></button>`;
+  bar.innerHTML = `<span class="grip" title="Drag to move · double-tap to put back"></span>` + bar.innerHTML;
   bar.hidden = false; positionConBar();
 }
 function positionConBar() {
-  const bar = $('#conBar'), j = job(); if (bar.hidden || !j) return;
+  const bar = $('#conBar'), j = job(); if (bar.hidden || !j) return; if (POP.place(bar, 'con')) return;
   const pts = []; for (const it of U.multi) { const x = segOf(j, it); if (x) arcPts(x.s.a, x.s.b, x.s.bul).forEach(p => pts.push(U.vn.toS(p))); } if (!pts.length) return;
   const ws = $('#ws'), W = ws.clientWidth, H = ws.clientHeight, w = bar.offsetWidth, h = bar.offsetHeight;
   const x0 = Math.min(...pts.map(q => q[0])), x1 = Math.max(...pts.map(q => q[0])), y0 = Math.min(...pts.map(q => q[1])), y1 = Math.max(...pts.map(q => q[1]));
-  const minX = (U.railsOff ? 0 : $('#railL').offsetWidth + 12) + 10, maxX = W - (U.railsOff ? 0 : $('#railR').offsetWidth + 12) - 10 - w;
+  const minX = (U.railsOff || isPhoneUI() ? 0 : $('#railL').offsetWidth + 12) + 8, maxX = W - (U.railsOff || isPhoneUI() ? 0 : $('#railR').offsetWidth + 12) - 8 - w;
   let y = y0 - h - 18; if (y < 10) y = y1 + 18; if (y > H - h - 60) y = Math.max(10, y0 - h - 18);
-  bar.style.left = Math.max(minX, Math.min(maxX, (x0 + x1) / 2 - w / 2)) + 'px'; bar.style.top = Math.max(10, Math.min(H - h - 60, y)) + 'px';
+  bar.style.left = Math.max(minX, Math.min(maxX, (x0 + x1) / 2 - w / 2)) + 'px'; bar.style.top = Math.max(10, Math.min(H - h - (isPhoneUI() ? 140 : 60), y)) + 'px';
 }
 
 /* ================================================================
    MOVE A LINE — drag a selected line square to itself; the lines joined to it stretch or shrink
    (same element and other elements whose corners sit on it), so nothing comes apart
    ================================================================ */
+/* ================================================================
+   CURVES — drag an arc: only its curvature changes, the lines joined to it stay put.
+   Drag the point where a curve meets a line: the point slides along that line (the line's other end stays),
+   the line gets longer or shorter and its number follows. Tangency is remembered at each end of an arc.
+   ================================================================ */
+const JOIN = 0.02;
+function jointPartners(j, el, vi) { const p = el.pts[vi], out = []; for (const e of j.elements) { if (e === el || !e.pts) continue; e.pts.forEach((q, k) => { if (V.dist(p, q) < JOIN) out.push({ el: e, vi: k }); }); } return out; }
+const nbrSegs = (e, vi) => { const k = e.pts.length, m = segs(e).length, out = []; const pv = vi - 1 >= 0 ? vi - 1 : e.closed ? k - 1 : -1; if (pv >= 0 && pv < m) out.push({ seg: pv, far: pv }); if (vi < m) out.push({ seg: vi, far: (vi + 1) % k }); return out; };
+/** at a joint, the straight line to slide along (only when the joint is where a curve meets a line) */
+function slideAt(j, el, vi) {
+  const all = [{ el, vi }, ...jointPartners(j, el, vi)]; let line = null, curve = false;
+  for (const { el: e, vi: k } of all) for (const nb of nbrSegs(e, k)) { const sg = segs(e)[nb.seg]; if (!sg) continue; if (sg.bul) curve = true; else if (!line && V.dist(sg.a, sg.b) > 0.05) line = { el: e, seg: nb.seg, fix: e.pts[nb.far].slice(), dir: V.norm(V.sub(e.pts[k], e.pts[nb.far])) }; }
+  return curve && line ? line : null;
+}
+/** the tangent direction an arc must have at its end `end` ('a' | 'b') to run smoothly into line ref */
+function tanRefDir(j, ref, P) { const e = j.elements.find(x => x.id === ref.el), sg = e && e.pts && segs(e)[ref.seg]; if (!sg || sg.bul) return null; return travelInto(sg, P); }
+function bulgeForTan(A, B, end, u) { const ch = V.norm(V.sub(B, A)); return end === 'a' ? Math.tan(-angBetween(ch, u) / 2) : Math.tan(angBetween(ch, V.mul(u, -1)) / 2); }
+/** keep an arc's remembered tangency after its ends moved (one tangent end: its bulge follows) */
+function reTan(j, el) {
+  if (!el.tan) return;
+  for (const [k, t] of Object.entries(el.tan)) {
+    const i = +k, sg = segs(el)[i]; if (!sg || !sg.bul) { delete el.tan[k]; continue; }
+    const end = t.a ? 'a' : t.b ? 'b' : null; if (!end) continue;
+    const u = tanRefDir(j, t[end], end === 'a' ? sg.a : sg.b); if (!u) { delete t[end]; continue; }
+    const bu = bulgeForTan(sg.a, sg.b, end, u); if (isFinite(bu) && Math.abs(bu) > 1e-4 && Math.abs(bu) < 50) el.bul[i] = bu;
+  }
+}
+/** an arc tangent to two lines: its ends sit at equal distance from where the lines cross (a fillet of tangent length tl) */
+function filletEnds(j, el, i, tl) {
+  const t = el.tan && el.tan[i]; if (!t || !t.a || !t.b) return null;
+  const sg = segs(el)[i], La = segOf(j, t.a), Lb = segOf(j, t.b); if (!La || !Lb || La.s.bul || Lb.s.bul) return null;
+  const da = V.norm(V.sub(La.s.b, La.s.a)), db = V.norm(V.sub(Lb.s.b, Lb.s.a)), den = V.cross(da, db);
+  if (Math.abs(den) < 1e-6) return null;
+  const X = V.add(La.s.a, V.mul(da, V.cross(V.sub(Lb.s.a, La.s.a), db) / den));
+  const ua = V.norm(V.sub(sg.a, X)), ub = V.norm(V.sub(sg.b, X)); if (V.dist(sg.a, X) < 1e-6 || V.dist(sg.b, X) < 1e-6) return null;
+  if (tl == null) tl = V.dist(sg.a, X);
+  return { X, A: V.add(X, V.mul(ua, tl)), B: V.add(X, V.mul(ub, tl)), ua, ub };
+}
+/** move a joint (and every end sitting on it) to q; straight sides that changed length carry their number along */
+function moveJoint(j, list, q, dims0) {
+  for (const { el: e, vi } of list) e.pts[vi] = r2(q);
+  for (const { el: e } of list) carryDims(e, dims0);
+}
+function snapDims(list) { const m = new Map(); for (const { el: e } of list) if (!m.has(e.id)) m.set(e.id, { pts: e.pts.map(p => p.slice()), dims: JSON.parse(JSON.stringify(e.dims || {})) }); return m; }
+function carryDims(e, m) {
+  const o = m && m.get(e.id); if (!o) return; e.dims = JSON.parse(JSON.stringify(o.dims)); const k = o.pts.length;
+  for (const sg of segs(e)) {
+    const d0 = e.dims[sg.i]; if (!d0) continue;
+    if (sg.bul) { if (d0.tape != null && !d0.src) d0.tape = Math.round(arcGeom(sg.a, sg.b, sg.bul).r * 10) / 10; continue; } // a radius follows the curve
+    const dl = V.dist(sg.a, sg.b) - V.dist(o.pts[sg.i], o.pts[(sg.i + 1) % k]); if (Math.abs(dl) < 0.001) continue;
+    const sh = x => x != null ? Math.max(0, Math.round((x + dl) * 100) / 100) : x;
+    d0.tape = sh(d0.tape); if (d0.adopted != null) d0.adopted = sh(d0.adopted); if (d0.same != null) d0.same = sh(d0.same);
+  }
+}
+/** start dragging corner vi of el: slide along a joined line when it is where a curve meets that line */
+function vertexDragStart(j, el, vi) {
+  const list = [{ el, vi }, ...jointPartners(j, el, vi)], slide = slideAt(j, el, vi);
+  const arcs = []; for (const { el: e, vi: k } of list) for (const nb of nbrSegs(e, k)) { const sg = segs(e)[nb.seg]; if (sg && sg.bul) arcs.push({ el: e, seg: nb.seg, end: nb.seg === k ? 'a' : 'b' }); }
+  const extra = []; // double-tangent arcs: their other end slides too (the fillet grows or shrinks)
+  for (const a of arcs) { const t = a.el.tan && a.el.tan[a.seg]; if (t && t.a && t.b) { const o = a.end === 'a' ? (a.seg + 1) % a.el.pts.length : a.seg; extra.push({ arc: a, list: [{ el: a.el, vi: o }, ...jointPartners(j, a.el, o)] }); } }
+  const every = list.concat(...extra.map(x => x.list)), also = new Set(); for (const { el: e } of every) also.add(e);
+  for (const a of arcs) also.add(a.el);
+  for (const e of [...also]) if (e.tan) for (const t of Object.values(e.tan)) for (const r of [t.a, t.b]) { const o = r && j.elements.find(x => x.id === r.el); if (o) also.add(o); }
+  return { list, slide, arcs, extra, m: snapDims([...also].map(e => ({ el: e }))) };
+}
+function vertexDragApply(j, st, w) {
+  for (const [id, o] of st.m) { const e = j.elements.find(x => x.id === id); if (e) { e.pts = o.pts.map(p => p.slice()); e.dims = JSON.parse(JSON.stringify(o.dims)); } }
+  let q = w;
+  if (st.slide) { const t = Math.max(0.1, V.dot(V.sub(w, st.slide.fix), st.slide.dir)); q = V.add(st.slide.fix, V.mul(st.slide.dir, t)); }
+  for (const { el: e, vi } of st.list) e.pts[vi] = r2(q);
+  for (const x of st.extra) { const a = x.arc, f = filletEnds(j, a.el, a.seg, null); if (!f) continue; const tl = V.dist(q, f.X), far = a.end === 'a' ? f.B : f.A, u = a.end === 'a' ? f.ub : f.ua; const q2 = V.add(f.X, V.mul(u, tl)); void far; for (const { el: e, vi } of x.list) e.pts[vi] = r2(q2); }
+  const touched = new Set([...st.m.keys()]);
+  for (const id of touched) { const e = j.elements.find(x => x.id === id); if (e) { reTan(j, e); carryDims(e, st.m); } }
+  return q;
+}
+/** drag an arc by its middle: endpoints stay, the curve passes through the finger (a double-tangent arc grows or shrinks as a fillet) */
+function arcDragStart(j, el, si) {
+  const sg = segs(el)[si]; if (!sg || !sg.bul || el.shape === 'circle' || (el.closed && segs(el).every(x => x.bul))) return null;
+  const t = el.tan && el.tan[si], both = !!(t && t.a && t.b);
+  const list = both ? [{ el, vi: si }, ...jointPartners(j, el, si), { el, vi: (si + 1) % el.pts.length }, ...jointPartners(j, el, (si + 1) % el.pts.length)] : [{ el, vi: si }];
+  const also = new Set(list.map(x => x.el)); if (both) for (const r of [t.a, t.b]) { const o = j.elements.find(x => x.id === r.el); if (o) also.add(o); }
+  return { arc: true, el: el.id, seg: si, both, bul0: sg.bul, m: snapDims([...also].map(e => ({ el: e }))), d: 0 };
+}
+function arcDragApply(j, st, w) {
+  for (const [id, o] of st.m) { const e = j.elements.find(x => x.id === id); if (e) { e.pts = o.pts.map(p => p.slice()); e.dims = JSON.parse(JSON.stringify(o.dims)); } }
+  const el = j.elements.find(x => x.id === st.el); if (!el) return; const sg = segs(el)[st.seg];
+  if (st.both) {
+    const f = filletEnds(j, el, st.seg, null); if (!f) return;
+    const bis = V.norm(V.add(f.ua, f.ub)), half = Math.acos(Math.max(-1, Math.min(1, V.dot(f.ua, f.ub)))) / 2; // half the angle between the lines at X
+    const dM = Math.max(0.05, V.dot(V.sub(w, f.X), bis)), k = (1 / Math.sin(half) - 1) * Math.tan(half); if (k < 1e-6) return;
+    const tl = dM / k, A = V.add(f.X, V.mul(f.ua, tl)), B = V.add(f.X, V.mul(f.ub, tl)), n = el.pts.length;
+    for (const x of jointPartners(j, el, st.seg)) x.el.pts[x.vi] = r2(A); for (const x of jointPartners(j, el, (st.seg + 1) % n)) x.el.pts[x.vi] = r2(B);
+    el.pts[st.seg] = r2(A); el.pts[(st.seg + 1) % n] = r2(B); reTan(j, el);
+  } else {
+    let bu = arcBulge(sg.a, sg.b, w); if (!bu || !isFinite(bu)) bu = Math.sign(st.bul0) * 0.01; bu = Math.max(-20, Math.min(20, bu));
+    el.bul[st.seg] = bu; if (el.tan && el.tan[st.seg]) delete el.tan[st.seg]; // the crew changed the curve: it no longer follows a tangent
+  }
+  for (const id of st.m.keys()) { const e = j.elements.find(x => x.id === id); if (e) carryDims(e, st.m); }
+  const s2 = segs(el)[st.seg]; st.d = arcGeom(s2.a, s2.b, s2.bul).r;
+}
 function lineDragStart(j, el, si) {
   const S = segs(el), s = S[si]; if (!s) return null;
   const u = V.norm(V.sub(s.b, s.a)), nrm = [-u[1], u[0]], L = V.dist(s.a, s.b), n = el.pts.length, m = S.length;
@@ -3065,6 +3439,7 @@ function lineDragApply(j, st, d) {
       st.changed.push(`${id} side ${sg.i + 1} ${f2(dimVal(e, sg.i))}`);
     }
   }
+  for (const id of st.orig.keys()) { const e = j.elements.find(x => x.id === id); if (e) reTan(j, e); } // arcs keep running smoothly into a moved line
 }
 /* ================================================================
    SEPARATION — distance from one line to another (wall to concrete edge, walk width…)
@@ -3114,7 +3489,7 @@ function drawSeps(ctx, v, j, P) {
     ctx.beginPath(); ctx.moveTo(...a); ctx.lineTo(...b); ctx.stroke();
     if (L > 10) { const u = V.norm(V.sub(b, a)); for (const [p, d] of [[a, u], [b, V.mul(u, -1)]]) { const n = [-d[1], d[0]]; ctx.beginPath(); ctx.moveTo(...p); ctx.lineTo(p[0] + d[0] * 6 + n[0] * 3, p[1] + d[1] * 6 + n[1] * 3); ctx.lineTo(p[0] + d[0] * 6 - n[0] * 3, p[1] + d[1] * 6 - n[1] * 3); ctx.closePath(); ctx.fill(); } }
     const m = V.mul(V.add(a, b), .5); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    const s = f1(sp.val); ctx.font = '600 11.5px "Roboto Condensed", sans-serif-condensed, sans-serif'; const w = ctx.measureText(s).width + 8;
+    const s = f1(sp.val) + "'"; ctx.font = '600 11.5px "Roboto Condensed", sans-serif-condensed, sans-serif'; const w = ctx.measureText(s).width + 8;
     ctx.fillStyle = P.bg; ctx.globalAlpha = .9; ctx.fillRect(m[0] - w / 2, m[1] - 8, w, 16); ctx.globalAlpha = 1;
     haloText(ctx, s, m[0], m[1] + .5, P.sep, P, '600 11.5px "Roboto Condensed", sans-serif-condensed, sans-serif');
     ctx.restore();
@@ -4307,6 +4682,7 @@ function fieldbook(j) {
       closure: closure(el), raw_stroke: el.raw || null,
     } : el.type === 'util' ? { id: el.id, type: 'utility', utility: UT[el.util].code || el.util, at_local: el.at, direction_deg: UT[el.util].pole ? Math.round(((el.rot || 0) / D2R + 360) % 360) : null, point: el.point || null, note: el.note || null }
       : el.type === 'area' ? (() => { const r = areaRegion(j, el); return { id: el.id, type: 'area', area: el.kind === 'roof' ? 'roofed' : el.kind === 'screen' ? 'screened' : 'utility pad', label: areaLines(el).join(' '), floor_or_item: el.label, members: el.members, against_wall_of: r && r.wall || null, outline_local: r ? r.poly.map(r2) : null, label_at_local: r ? r2(polyCentroid(r.poly)) : null }; })()
+      : el.type === 'mon' ? { id: el.id, type: 'monument', monument: monLabel(el.mon), size: el.size || null, cap: el.cap || null, at_local: el.at }
       : { id: el.id, type: 'text', at_local: el.at, text: el.text }),
     separations: (j.seps || []).map(sp => { const g = sepGeom(j, sp); return { from: { element: sp.a.el, side: sp.a.seg + 1 }, to: { element: sp.b.el, side: sp.b.seg + 1 }, tape: sp.val, sketch: g ? +g.d.toFixed(2) : null }; }),
     gps_vs_tape: allRuns(j).map(({ el, r, ev, dec }) => ({ element: el.id, wall: ev.name, from: 'v' + (r.from + 1), to: 'v' + (r.to + 1), points: [ev.P1.id, ev.P2.id], gps: +f2(ev.D), tape: ev.tapes, status: ev.status, used: ev.pieces || null, decision: dec || null, reasons: ev.reasons || [] })),
@@ -4340,17 +4716,18 @@ function dxfWriter(layers) {
     },
   };
 }
-const uprightDeg = (a, b) => { let d = Math.atan2(b[1] - a[1], b[0] - a[0]) / D2R; if (d > 90) d -= 180; if (d < -90) d += 180; return d; };
+const uprightDeg = (a, b) => { let d = Math.atan2(b[1] - a[1], b[0] - a[0]) / D2R; if (d > 90 + 1e-6) d -= 180; if (d <= -90 + 1e-6) d += 180; return d; }; // one reading direction: verticals read bottom to top
 /* field notes drawing: lot, streets, sketch, lengths, separations, labels — fitted to State Plane when 2+ links */
 function notesDXF(j) {
   const T = fitTransform(j), tf = T ? T.fwd : p => p, rotOff = T ? T.rot / D2R : 0, sc = T ? T.scale : 1;
   const ACI = { lot: 3, ease: 1, bldg: 6, impr: 8, fence: 30, water: 5, septic: 34, power: 2, comm: 30, elec: 1, sewer: 3, gas: 2, storm: 4 };
-  const layers = new Map([['FRAME', 3], ['FRAME-TEXT', 3], ['STREET', 8], ['STREET-CL', 8], ['STREET-TEXT', 7], ['SK-DIM', 7], ['SK-TEXT', 7], ['SK-UTIL', 2]]);
+  const layers = new Map([['FRAME', 3], ['FRAME-TEXT', 3], ['STREET', 8], ['STREET-CL', 8], ['STREET-TEXT', 7], ['SK-DIM', 7], ['SK-TEXT', 7], ['SK-UTIL', 2], ['SK-MON', 1]]);
   for (const el of j.elements) if (el.pts) layers.set('SK-' + TY[el.type].code, ACI[TY[el.type].col] || 7);
   const D = dxfWriter(layers), text = (layer, p, h, s, rot = 0, al = 1) => D.text(layer, tf(p), h * sc, s, rot + rotOff, al);
   if (j.frame) {
     const g = lotGeom(j.frame); D.poly('FRAME', g.B.map(x => x.a), g.B.map(x => x.bul), true, tf);
     for (const L of g.lines) for (const P of streetPieces(j.frame, L)) D.poly(L.kind === 'cl' ? 'STREET-CL' : 'STREET', P, null, false, tf);
+    for (const bk of g.breaks || []) D.poly('STREET', bk.pts, null, false, tf);
     for (const lb of g.labels) { const ang = uprightDeg([0, 0], lb.u), n = lb.nOut; text('STREET-TEXT', V.add(lb.at, V.mul(n, 3)), 2.0, lb.name, ang); text('STREET-TEXT', V.sub(lb.at, V.mul(n, 2.5)), 1.4, lb.road, ang); }
     for (const c of g.S) { const t = c.r > 0 && c.bul ? `R=${f2(c.r)}' L=${f2(c.len)}' (P)` : `${f2(c.len || V.dist(c.a, c.b))}' (P)`; const ap = arcPts(c.a, c.b, c.bul), m = ap[Math.floor(ap.length / 2)], u = V.norm(V.sub(c.b, c.a)); text('FRAME-TEXT', V.add(m, [u[1] * -1.6, u[0] * 1.6]), 1.2, t, uprightDeg(c.a, c.b)); }
     for (const c of g.corners) { const rec = j.corners.find(x => x.key === c.name) || {}; D.o(0, 'CIRCLE', 8, 'FRAME', 10, D.n4(tf(c.p)[0]), 20, D.n4(tf(c.p)[1]), 30, '0.0', 40, (0.5 * sc).toFixed(3)); text('FRAME-TEXT', V.add(c.p, [c.dx * 1.5, c.dy * -1.5]), 1.2, `${c.name}${rec.status === 'found' ? ' ' + (rec.type || 'FOUND') + (rec.cap ? ' ' + rec.cap : '') : rec.status === 'notfound' ? ' NOT FOUND' : rec.status === 'set' ? ' SET' + (rec.cap ? ' ' + rec.cap : '') : ''}`, 0, c.dx < 0 ? 2 : 0); }
@@ -4358,9 +4735,11 @@ function notesDXF(j) {
   for (const el of j.elements) {
     if (el.pts) {
       D.poly('SK-' + TY[el.type].code, el.pts, el.bul, el.closed, tf);
-      for (const s of segs(el)) { const v = dimVal(el, s.i); if (v == null) continue; const ap = arcPts(s.a, s.b, s.bul), m = ap[Math.floor(ap.length / 2)]; text('SK-DIM', m, 1.0, (s.bul ? 'R ' : '') + f1(v), uprightDeg(s.a, s.b)); }
+      const two = twoDims(j, el);
+      for (const s of segs(el)) { if (two && !two.has(s.i)) continue; const v = dimVal(el, s.i); if (v == null) continue; const ap = arcPts(s.a, s.b, s.bul), m = ap[Math.floor(ap.length / 2)]; text('SK-DIM', m, 1.0, (s.bul ? 'R ' : '') + f1(v) + "'", uprightDeg(s.a, s.b)); }
     } else if (el.type === 'util') text('SK-UTIL', el.at, 1.0, (UT[el.util].code || el.util) + (el.point ? ' ' + el.point : ''));
     else if (el.type === 'text') text('SK-TEXT', el.at, 1.0, el.text, 0, 0);
+    else if (el.type === 'mon') { D.o(0, 'CIRCLE', 8, 'SK-MON', 10, D.n4(tf(el.at)[0]), 20, D.n4(tf(el.at)[1]), 30, '0.0', 40, (0.4 * sc).toFixed(3)); text('SK-MON', V.add(el.at, [0.8, 0.8]), 1.0, monText(el), 0, 0); }
     else if (el.type === 'area') { const r = areaRegion(j, el); if (r) text('SK-TEXT', polyCentroid(r.poly), 1.0, areaLines(el).join(' ')); }
   }
   for (const sp of j.seps || []) { const g = sepGeom(j, sp); if (!g) continue; D.poly('SK-DIM', [g.foot, g.to], null, false, tf); if (g.outside) D.poly('SK-DIM', [g.near, g.foot], null, false, tf); if (g.outsideB) D.poly('SK-DIM', [g.nearB, g.to], null, false, tf); text('SK-DIM', V.mul(V.add(g.foot, g.to), .5), 1.0, f1(sp.val), uprightDeg(g.foot, g.to)); }
@@ -4470,11 +4849,38 @@ function ntripStart() {
 async function nativeConnect() {
   let list = []; try { list = JSON.parse(NATIVE.btPaired() || '[]'); } catch (e) { }
   if (list.error) return toast(list.error, 'warn', 6000);
-  if (!list.length) return modal({ title: 'Connect the rover', body: '<p>No paired Bluetooth devices. Pair the rover first in the phone\'s Bluetooth settings (its name usually starts with the serial number), then come back and press Connect.</p><p class="muted" style="font-size:12.5px">FieldGenius must not be connected to the rover at the same time.</p>', actions: [{ label: 'Close' }, { label: 'Bluetooth settings', kind: 'primary', onClick: () => NATIVE.openBtSettings() }] });
-  const last = S.rover.btAddr;
+  const canScan = !!NATIVE.btScan, last = S.rover.btAddr, found = new Map(), paired = new Set(list.map(d => d.address));
+  const roverish = d => /S9\d\d|S8\d\d|STONEX|SC\d|GNSS|RTK|ROVER|SURVEY|^\d{6,}/i.test(d.name || '');
+  const go = (d, close) => { S.rover.btAddr = d.address; S.rover.btName = d.name; save(); close(); toast(`Connecting to ${d.name || d.address}…`, 'info', 3000); NATIVE.btConnect(d.address); };
+  const pairedHTML = list.length ? list.map((d, i) => `<button class="btn${d.address === last ? ' primary' : ''}" data-bt="${i}" style="justify-content:flex-start">${esc(d.name || 'Unnamed')} <span class="muted" style="font-size:11px">${esc(d.address)}</span></button>`).join('') : '<p class="muted" style="margin:0;font-size:12.5px">None yet: search below to find and pair the rover.</p>';
   modal({
-    title: 'Connect the rover', body: `<p class="muted" style="font-size:12.5px;margin:0">Paired devices. Disconnect FieldGenius from the rover first.</p><div class="mchips" style="flex-direction:column;align-items:stretch;gap:6px;margin-top:6px">${list.map((d, i) => `<button class="btn${d.address === last ? ' primary' : ''}" data-bt="${i}" style="justify-content:flex-start">${esc(d.name || 'Unnamed')} <span class="muted" style="margin-left:auto;font:11px var(--font-data)">${esc(d.address)}</span></button>`).join('')}</div>`,
-    onMount: (r, close) => $$('[data-bt]', r).forEach(b => b.onclick = () => { const d = list[+b.dataset.bt]; S.rover.btAddr = d.address; S.rover.btName = d.name; save(); close(); toast(`Connecting to ${d.name || d.address}…`, 'info', 3000); NATIVE.btConnect(d.address); }),
+    title: 'Connect the rover',
+    body: `<p class="muted" style="font-size:12.5px;margin:0">The rover talks to <b>one</b> device at a time: close FieldGenius (or turn off Bluetooth on the data collector / computer) before connecting here.</p>
+      <h4 style="margin:8px 0 4px">Paired with this phone</h4><div class="mchips" style="flex-direction:column;align-items:stretch;gap:6px">${pairedHTML}</div>
+      ${canScan ? `<div class="row" style="margin-top:10px;gap:8px"><button class="btn small primary" type="button" id="btSearch">Search for the rover</button><span class="muted" id="btState" style="font-size:12.5px"></span></div><div id="btFound" style="display:flex;flex-direction:column;gap:6px;margin-top:6px"></div>` : ''}`,
+    onClose: () => { if (canScan) { try { NATIVE.btStopScan(); } catch (e) { } } delete NATIVE_EV.btscan; delete NATIVE_EV.btbond; delete NATIVE_EV.btperm; },
+    onMount: (r, close) => {
+      $$('[data-bt]', r).forEach(b => b.onclick = () => go(list[+b.dataset.bt], close));
+      if (!canScan) return;
+      const st = t => { const x = $('#btState', r); if (x) x.textContent = t; };
+      const draw = () => {
+        const box = $('#btFound', r); if (!box) return;
+        const arr = [...found.values()].sort((a, b) => (roverish(b) - roverish(a)) || (b.rssi - a.rssi));
+        box.innerHTML = arr.map(d => `<button class="btn${roverish(d) ? ' primary' : ''}" data-found="${esc(d.address)}" style="justify-content:space-between"><span>${esc(d.name || 'Unnamed device')} <span class="muted" style="font-size:11px">${esc(d.address)}</span></span><span class="chip">${d.bonded || paired.has(d.address) ? 'paired' : 'pair'}</span></button>`).join('');
+        $$('[data-found]', box).forEach(b => b.onclick = () => {
+          const d = found.get(b.dataset.found); if (!d) return;
+          if (d.bonded || paired.has(d.address)) return go(d, close);
+          const res = JSON.parse(NATIVE.btPair(d.address) || '{}'); if (res.error) return toast(res.error, 'warn', 7000);
+          st(`Pairing with ${d.name || d.address}… if Android asks for a PIN, try 1234 or 0000.`);
+        });
+      };
+      const start = () => { found.clear(); draw(); const res = JSON.parse(NATIVE.btScan() || '{}'); if (res.error) { st(''); return toast(res.error, res.perm ? 'info' : 'warn', 7000); } st('Searching… (about 12 seconds)'); };
+      NATIVE_EV.btscan = d => { if (d.state === 'found' && d.address) { found.set(d.address, d); draw(); } else if (d.state === 'done') st(found.size ? 'Done. Tap the rover (its name usually has its model or serial number).' : 'Nothing found. Is the rover on, and not connected to another device?'); };
+      NATIVE_EV.btbond = d => { const dv = found.get(d.address) || { address: d.address, name: '' }; if (d.ok) { toast(`Paired with ${dv.name || d.address}.`, 'good', 3000); go(dv, close); } else st('Pairing did not finish. Close FieldGenius on the other device and try again.'); };
+      NATIVE_EV.btperm = d => { if (d.ok && d.scan) start(); else if (!d.ok) toast('Without that permission Crew Studio can only use devices paired in the phone\'s Bluetooth settings.', 'warn', 7000); };
+      $('#btSearch', r).onclick = start;
+      if (!list.length) start(); // nothing paired yet: start looking straight away
+    },
     actions: [{ label: 'Cancel' }, { label: 'Bluetooth settings', onClick: () => NATIVE.openBtSettings() }],
   });
 }
@@ -5105,6 +5511,7 @@ function onAct(act) {
     case 'gline-del': { if (!editable(j)) return; pushUndo(); j.gpsLines = j.gpsLines.filter(x => x.id !== U.glineSel); logJ(j, `GPS linework ${U.glineSel} deleted`); U.glineSel = null; save(); return render(); }
     case 'place-shots': return j && offerPlace(j, true);
     case 'area-set': { const el = selEl(); if (!el || el.type !== 'area' || !editable(j)) return; pushUndo(); el.label = arg; logJ(j, `${el.id}: ${areaLines(el).join(' ')}`); save(); return render(); }
+    case 'mon-edit': { const el = selEl(); if (el && el.type === 'mon' && editable(j)) monPop(j, el); return; }
     case 'area-label': { const el = selEl(); if (!el || !editable(j)) return; if (!checkArea(j, el, true)) toast('This line does not close an area yet: close it on itself or end both sides on a building wall.', 'warn', 5000); return; }
     case 'checks': U.panel = U.panel === 'checks' ? null : 'checks'; if (U.panel) U.sel = null; return render();
     case 'balance': { const el = arg ? j.elements.find(e => e.id === arg) : selEl(); if (el && editable(j)) balanceEl(j, el); return; }
@@ -5115,6 +5522,7 @@ function onAct(act) {
       if (a === 'f3acc') acceptRun(j, x.el, x.r, x.ev); else keepTape(j, x.el, x.r, x.ev, 'kept'); return;
     }
     case 'unlink': { const el = selEl(); if (!el || !editable(j)) return; pushUndo(); unlinkVertex(j, el, +arg); save(); render(); return; }
+    case 'panel-min': U.panelMin = !U.panelMin; try { localStorage.setItem('crew.panelMin', U.panelMin ? '1' : '0'); } catch (e) { } return renderPanel();
     case 'panel-close': U.sel = null; U.multi = []; U.panel = null; U.gpsSel = null; U.glineSel = null; U.platSel = null; return render();
     case 'zin': return zoomBy(1.3);
     case 'zout': return zoomBy(1 / 1.3);
@@ -5201,6 +5609,12 @@ document.addEventListener('change', e => {
     if (t.id === 'pNote' && el) { el.note = t.value; logJ(j, `${el.id} note: ${t.value}`); save(); return; }
     if (t.id === 'pUPt' && el) { el.point = t.value.trim(); logJ(j, `${el.id} linked to shot ${el.point || '(none)'}`); save(); render(); return; }
     if (t.id === 'pText' && el) { pushUndo(); el.text = t.value; logJ(j, `${el.id} text: ${t.value}`); save(); render(); return; }
+    if ((t.id === 'pPadL' || t.id === 'pPadW') && el && (el.type === 'area' || isPad(el))) {
+      const pad = el.type === 'area' ? j.elements.find(x => x.id === el.members[0]) : el; if (!isPad(pad)) return;
+      const num = id => { const x = $('#' + id); const v = x ? parseFloat(x.value.trim().replace(',', '.')) : NaN; return v > 0 && v < 500 ? Math.round(v * 100) / 100 : null; };
+      const L = num('pPadL'), W = num('pPadW'); if (L == null && W == null) return render();
+      setPad(j, pad, L, W); return render();
+    }
     if (t.id === 'pArea' && el && el.type === 'area') { pushUndo(); el.label = t.value.trim().toUpperCase() || el.label; logJ(j, `${el.id}: ${areaLines(el).join(' ')}`); save(); render(); return; }
     const m = j.plat.marks.find(x => x.id === U.platSel);
     if (m && t.id === 'mType') { m.type = t.value; logJ(j, `Plat mark is now ${m.type}`); save(); render(); return; }

@@ -5,7 +5,11 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothSocket;
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.os.Build;
 import android.util.Base64;
 
 import org.json.JSONArray;
@@ -76,6 +80,57 @@ final class RoverLink {
         }
     }
 
+    /* ---------------- finding and pairing the rover from inside the app ---------------- */
+    private BroadcastReceiver scanRx;
+
+    /** Search for nearby Bluetooth devices (about 12 s). Each one found comes back as a "btscan" event. */
+    synchronized String scan() {
+        BluetoothAdapter ad = adapter();
+        if (ad == null) return "{\"error\":\"This phone has no Bluetooth.\"}";
+        if (!ad.isEnabled()) return "{\"error\":\"Turn Bluetooth on, then search again.\"}";
+        if (scanRx == null) {
+            scanRx = new BroadcastReceiver() {
+                @Override public void onReceive(Context c, Intent i) {
+                    String a = i.getAction(); BluetoothDevice d = i.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                    try {
+                        if (BluetoothDevice.ACTION_FOUND.equals(a) && d != null) {
+                            JSONObject o = new JSONObject().put("state", "found").put("address", d.getAddress()).put("name", d.getName() == null ? "" : d.getName())
+                                    .put("bonded", d.getBondState() == BluetoothDevice.BOND_BONDED).put("rssi", i.getShortExtra(BluetoothDevice.EXTRA_RSSI, Short.MIN_VALUE))
+                                    .put("major", d.getBluetoothClass() == null ? -1 : d.getBluetoothClass().getMajorDeviceClass());
+                            em.emit("btscan", o.toString());
+                        } else if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(a)) em.emit("btscan", "{\"state\":\"done\"}");
+                        else if (BluetoothDevice.ACTION_BOND_STATE_CHANGED.equals(a) && d != null) {
+                            int st = i.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE, -1), prev = i.getIntExtra(BluetoothDevice.EXTRA_PREVIOUS_BOND_STATE, -1);
+                            if (st == BluetoothDevice.BOND_BONDED) em.emit("btbond", new JSONObject().put("address", d.getAddress()).put("ok", true).toString());
+                            else if (st == BluetoothDevice.BOND_NONE && prev == BluetoothDevice.BOND_BONDING) em.emit("btbond", new JSONObject().put("address", d.getAddress()).put("ok", false).toString());
+                        }
+                    } catch (Exception e) { /* ignore one bad report */ }
+                }
+            };
+            IntentFilter f = new IntentFilter(BluetoothDevice.ACTION_FOUND);
+            f.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
+            f.addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
+            if (Build.VERSION.SDK_INT >= 33) act.registerReceiver(scanRx, f, Context.RECEIVER_EXPORTED); else act.registerReceiver(scanRx, f);
+        }
+        if (ad.isDiscovering()) ad.cancelDiscovery();
+        return ad.startDiscovery() ? "{\"ok\":true}" : "{\"error\":\"The phone would not start a Bluetooth search. Turn Location on and try again.\"}";
+    }
+
+    void stopScan() { BluetoothAdapter ad = adapter(); if (ad != null && ad.isDiscovering()) ad.cancelDiscovery(); }
+
+    /** Pair with a device found by the search. Android shows its own PIN screen when the rover asks for one. */
+    String pair(String address) {
+        try {
+            BluetoothAdapter ad = adapter(); if (ad == null) return "{\"error\":\"no Bluetooth\"}";
+            ad.cancelDiscovery();
+            BluetoothDevice d = ad.getRemoteDevice(address);
+            if (d.getBondState() == BluetoothDevice.BOND_BONDED) { em.emit("btbond", new JSONObject().put("address", address).put("ok", true).toString()); return "{\"ok\":true}"; }
+            return d.createBond() ? "{\"ok\":true}" : "{\"error\":\"The rover did not accept pairing. Close FieldGenius (or turn off Bluetooth on the other device) and try again.\"}";
+        } catch (Exception e) { return "{\"error\":\"Bluetooth: " + esc(e.getMessage()) + "\"}"; }
+    }
+
+    void release() { if (scanRx != null) { try { act.unregisterReceiver(scanRx); } catch (Exception e) { /* gone */ } scanRx = null; } stopScan(); }
+
     /* ---------------- Bluetooth ---------------- */
     synchronized void connect(String address) {
         disconnect(false);
@@ -112,10 +167,16 @@ final class RoverLink {
                     s.connect();
                 } catch (IOException first) {
                     closeQuiet(s);
-                    try { // some GNSS receivers only answer on channel 1
-                        s = (BluetoothSocket) dev.getClass().getMethod("createRfcommSocket", int.class).invoke(dev, 1);
+                    try { // the serial port without pairing security (some receivers only allow this, as data collectors use it)
+                        s = dev.createInsecureRfcommSocketToServiceRecord(SPP);
                         s.connect();
-                    } catch (Exception second) { closeQuiet(s); throw first; }
+                    } catch (IOException second) {
+                        closeQuiet(s);
+                        try { // some GNSS receivers only answer on channel 1
+                            s = (BluetoothSocket) dev.getClass().getMethod("createRfcommSocket", int.class).invoke(dev, 1);
+                            s.connect();
+                        } catch (Exception third) { closeQuiet(s); throw first; }
+                    }
                 }
                 sock = s;
                 synchronized (outLock) { btOut = s.getOutputStream(); }
