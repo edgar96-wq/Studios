@@ -357,7 +357,7 @@ body.phone .tab .xs{display:inline}body.phone .tab .s.rev{display:none}
    Crew Studio — field notes, GPS shots, photos and checks.
    Single file. Data stays on this device (browser storage).
    ================================================================ */
-const VERSION = '0.8.4';
+const VERSION = '0.8.5';
 const KEY = 'surveyorStudio.v1';
 const D2R = Math.PI / 180, USFT = 3937 / 1200;
 const $ = (s, r = document) => r.querySelector(s);
@@ -2152,7 +2152,7 @@ function drawFrame(ctx, v, j, P, fo = {}) { // fo.noLot: field-notes sheet — n
     ctx.strokeStyle = found ? P.mon : P.muted; ctx.fillStyle = found ? P.mon : P.bg; ctx.lineWidth = 1.6;
     ctx.beginPath(); if (found && /^FN|^PK/.test(rec.type)) { ctx.moveTo(s[0], s[1] - 7); ctx.lineTo(s[0] + 6, s[1] + 5); ctx.lineTo(s[0] - 6, s[1] + 5); ctx.closePath(); } else ctx.arc(s[0], s[1], 5.5, 0, 2 * Math.PI);
     ctx.fill(); ctx.stroke();
-    const lbl = `${c.name}${found ? ' ' + (rec.type || 'found') + (rec.size ? ' ' + rec.size : '') + (rec.cap ? ' ' + rec.cap : '') : nf ? ' not found' : rec.status === 'set' ? ' SET IR&C' + (rec.size ? ' ' + rec.size : '') + (rec.cap ? ' ' + rec.cap : '') : ' ?'}${rec.point ? ' · ' + rec.point : ''}`;
+    const lbl = `${c.name}${found ? ' ' + (rec.type || 'found') + (rec.size ? ' ' + rec.size : '') + (rec.cap ? ' ' + rec.cap : '') : nf ? ' not found' : rec.status === 'set' ? ' SET IR&C' + (rec.size ? ' ' + rec.size : '') + (rec.cap ? ' ' + rec.cap : '') : ' ?'}${rec.point && fo.shots ? ' · ' + rec.point : ''}`;
     const dx = c.dx * 10, dy = c.dy * 14;
     ctx.textAlign = dx < 0 ? 'right' : 'left'; ctx.textBaseline = 'middle';
     haloText(ctx, lbl, s[0] + dx, s[1] + dy, found ? P.mon : P.muted, P);
@@ -2170,7 +2170,7 @@ function twoDims(j, el) {
 function drawElement(ctx, v, j, el, P, opts = {}) {
   if (el.type === 'util') {
     const q = v.toS(el.at); drawUtilSym(ctx, UT[el.util], q, (el.rot || 0) + (v.r || 0), P);
-    if (opts.labels !== false) { ctx.textAlign = 'center'; ctx.textBaseline = 'top'; haloText(ctx, (UT[el.util].code || el.util) + (el.point ? ' · ' + el.point : ''), q[0], q[1] + 13, P[UT[el.util].col] || P.text, P, '11px "Roboto Condensed", sans-serif-condensed, sans-serif'); }
+    if (opts.labels !== false) { ctx.textAlign = 'center'; ctx.textBaseline = 'top'; haloText(ctx, (UT[el.util].code || el.util) + (el.point && opts.shots ? ' · ' + el.point : ''), q[0], q[1] + 13, P[UT[el.util].col] || P.text, P, '11px "Roboto Condensed", sans-serif-condensed, sans-serif'); }
     return;
   }
   if (el.type === 'mon') {
@@ -2215,7 +2215,7 @@ function drawElement(ctx, v, j, el, P, opts = {}) {
     LB.add(rotBox(c, tw, 13, 0));
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; haloText(ctx, s, c[0], c[1], colr, P, fnt);
   }
-  if (el.links) for (const [vi, pid] of Object.entries(el.links)) { if (el.pts[+vi]) shotBubble(ctx, v, el, +vi, String(pid), !ptById(j, pid), el.off && el.off[vi], P); }
+  if (el.links && opts.shots) for (const [vi, pid] of Object.entries(el.links)) { if (el.pts[+vi]) shotBubble(ctx, v, el, +vi, String(pid), !ptById(j, pid), el.off && el.off[vi], P); }
 }
 /* a declared shot: its number in a circle beside the corner, with an arrow to the corner it stands for */
 function bubbleDir(v, el, i) {
@@ -2288,13 +2288,14 @@ function drawNotes(ctx, W, H, opt = {}) {
   const P = opt.P || C(), v = opt.v || U.vn, j = job(); LB.reset();
   drawGrid(ctx, v, W, H, P);
   if (!j) return;
-  drawFrame(ctx, v, j, P, { noLot: !!opt.export });
+  const shots = !!opt.export || U.tab === 'rev'; // GPS shot numbers appear where shots are joined to the sketch (Review) and on the finished sheet, not while drawing
+  drawFrame(ctx, v, j, P, { noLot: !!opt.export, shots });
   const order = ['asph', 'ease', 'lot', 'conc', 'drive', 'walk', 'brick', 'tile', 'slab', 'deck', 'pool', 'steps', 'roofed', 'screen', 'clf', 'wdf', 'irf', 'cbs', 'seawall', 'dock', 'shed', 'wall'];
   const rank = el => el.type === 'util' || el.type === 'text' ? 100 : el.type === 'area' ? 99 : el.type === 'equip' ? 50 : order.indexOf(el.type);
   const els = j.elements.slice().sort((a, b) => rank(a) - rank(b));
   const sel = opt.export ? null : selEl();
   if (sel && sel.pts) { pathEl(ctx, v, sel); ctx.strokeStyle = P.sel; ctx.globalAlpha = 0.35; ctx.lineWidth = 9; ctx.stroke(); ctx.globalAlpha = 1; }
-  for (const el of els) drawElement(ctx, v, j, el, P, { ids: !opt.export });
+  for (const el of els) drawElement(ctx, v, j, el, P, { ids: !opt.export, shots });
   drawSeps(ctx, v, j, P);
   const rev = U.tab === 'rev' && !opt.export;
   if (rev && U.revShots) drawShotsOverlay(ctx, v, j, P);
@@ -2496,7 +2497,7 @@ const NotesH = {
   },
   down(p, e) {
     const j = job(); if (!j) return 'tap';
-    if (editable(j) && (U.tab === 'rev' ? U.revMode !== 'pan' : U.mode === 'select')) { const hb = hitBubble(j, p); if (hb) { U.bdrag = { el: hb.el.id, vi: hb.vi, undone: false }; return 'bdrag'; } }
+    if (editable(j) && U.tab === 'rev' && U.revMode !== 'pan') { const hb = hitBubble(j, p); if (hb) { U.bdrag = { el: hb.el.id, vi: hb.vi, undone: false }; return 'bdrag'; } }
     if (U.tab === 'rev') return 'tap';
     if (['select', 'sep', 'dim'].includes(U.mode) && editable(j) && !U.sepPick) { const hs = hitSep(j, p); if (hs) { U.sdrag = { sp: hs.sp, undone: false, before: hs.sp.at || null }; return 'sdrag'; } }
     if (U.mode === 'select') {
