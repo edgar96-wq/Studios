@@ -1,5 +1,5 @@
 # Ledger Studio — how to classify transactions (for Atlas)
-Version 1.0, 2026-11-02 · for Ledger Studio build 5 and later · give Atlas this whole file when it prepares bank or card statements.
+Version 1.1, 2026-11-06 · for Ledger Studio build 7 and later · give Atlas this whole file when it prepares bank or card statements.
 
 ## The job
 Edgar downloads a statement (CSV) from his bank or card. Atlas returns **the same CSV with four columns added**, so Ledger Studio
@@ -90,3 +90,7 @@ Date,Description,Amount,line,job,note,confidence
 - `high` rows are filed. `check` rows wait in Books → **To review**, one line per merchant, with your category as the suggestion.
 - When Edgar taps **File all** on a merchant, Ledger remembers it and files that merchant by itself in later statements, so reviews shrink every month.
 - Importing a statement that is already in Ledger, now with the four columns, updates the rows still waiting for review. Rows Edgar already filed are not touched.
+- Ledger also recognises the survey companies' deposits by itself (the company name, or the bank text Edgar typed in Setup → Companies), and files them as `survey-pay` without review. Atlas's `survey-pay` rows still win when both are present.
+- The `job` column matters: a deposit or expense with a job number feeds **Reports → Profit per job** and **Survey companies** (earned vs paid). Fill it whenever the bank text shows a work-order number.
+- Every statement import can be undone in **Files → Recent statement imports**, so a wrong file is not a disaster: undo it, fix it, import again.
+- Rows dated in a year Edgar has closed (after filing) are skipped on import. Don't prepare statements for a closed year unless he reopens it.

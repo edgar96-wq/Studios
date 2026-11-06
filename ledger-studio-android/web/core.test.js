@@ -103,5 +103,34 @@ ok(g.txns[2].status === 'review' && g.txns[2].line === 'tools', '"check" rows wa
 ok(g.txns[3].status === 'review' && g.txns[3].line !== 'survey-pay', 'a category that doesn\'t fit the money direction is ignored');
 ok(C.lineFrom('line 22') === 'field-supplies' && C.lineFrom('Software & apps') === 'software' && C.lineFrom('dues') === 'dues' && C.lineFrom('nonsense') === null, 'categories read from keys, names or line numbers');
 
+/* 10. automation: deposits from the companies, money by company, profit per job, periods, data checks, closed years */
+const COS = C.companiesOf({ jobs: [], settings: {} });
+ok(C.companyOfPayee('ZELLE FROM M E LAND SURVEYING', COS) === 'M.E. Land Surveying, Inc.' && C.companyOfPayee('ONLINELAND SURVEYORS DES:PAYROLL', COS) === 'OnlineLand Surveyors, Inc.'
+  && C.companyOfPayee('LANDMARK DIRECT DEP', COS) === 'LandMark' && C.companyOfPayee('ZELLE FROM JOHN SMITH', COS) === '', 'company found in the deposit text');
+ok(C.companyOfPayee('MELS PAYMENTS LLC', COS, { 'M.E. Land Surveying, Inc.': 'MELS' }) === 'M.E. Land Surveying, Inc.', 'extra bank text typed in Setup');
+const dep = C.csvToTxns('Date,Description,Amount\n10/03/2026,ZELLE FROM M E LAND SURVEYING,450.00\n10/04/2026,ZELLE FROM JOHN SMITH,40.00\n10/05/2026,TARGET T-1234 PORT CHARLOTTE,-25.00\n', 'b.csv', {}, { companies: COS });
+ok(dep.txns[0].status === 'ok' && dep.txns[0].line === 'survey-pay' && dep.txns[0].company === 'M.E. Land Surveying, Inc.', 'company deposit filed as survey pay by itself');
+ok(dep.txns[1].status === 'review' && dep.txns[2].kind === 'expense' && dep.txns[2].status === 'review', 'other deposits and Target-the-store purchases still wait for review');
+const SM = { settings: { rates: [{ from: '2026-01-01', cents: 72.5 }], companyRates: { 'OnlineLand Surveyors, Inc.': 60 } },
+  jobs: [{ id: 'jb1', code: 'B-1', client: 'M.E. Land Surveying, Inc.', source: 'onedrive' }, { id: 'jb2', code: 'B-2', client: 'M.E. Land Surveying, Inc.', source: 'onedrive' }, { id: 'jo1', code: 'O-1', client: 'OnlineLand Surveyors, Inc.', source: 'onedrive' }],
+  trips: [{ date: '2026-10-01', cls: 'business', miles: 10, jobIds: ['jb1'] }, { date: '2026-10-01', cls: 'business', miles: 10, jobIds: ['jb1'] }, { date: '2026-10-02', cls: 'business', miles: 8, jobIds: ['jb2', 'jo1'] }, { date: '2026-10-03', cls: 'personal', miles: 3, jobIds: [] }],
+  txns: [{ date: '2026-10-09', kind: 'income', amount: 50, line: 'survey-pay', payee: 'ZELLE FROM M E LAND SURVEYING' }, { date: '2026-10-09', kind: 'expense', amount: 6, line: 'field-supplies', payee: 'HOME DEPOT', jobId: 'jb1' }] };
+const cm = C.companyMoney(SM, '2026-10-01', '2026-10-31'), me = cm.rows.find(r => r.company.startsWith('M.E.')), ol = cm.rows.find(r => r.company.startsWith('Online'));
+ok(me.jobs === 2 && me.earned === 100 && me.paid === 50 && me.diff === 50 && ol.jobs === 1 && ol.earned === 60 && ol.paid === 0, 'earned (jobs driven to × pay per job) vs paid, per company');
+const jp = C.jobProfit(SM, '2026-10-01', '2026-10-31'), b1 = jp.find(x => x.code === 'B-1'), b2 = jp.find(x => x.code === 'B-2');
+ok(near(b1.miles, 20, 1e-9) && near(b1.car, 14.5, 1e-9) && b1.spent === 6 && near(b1.profit, 50 - 14.5 - 6, 1e-9), 'profit per job: pay − miles × rate − linked expenses');
+ok(near(b2.miles, 4, 1e-9), 'a trip to two jobs is shared between them');
+const pr = C.periodRange('month', '2026-11-06');
+ok(pr.from === '2026-11-01' && pr.to === '2026-11-06' && pr.prev.from === '2026-10-01' && pr.prev.to === '2026-10-06', 'this month so far vs the same days last month');
+const lm = C.periodRange('last-month', '2026-03-31');
+ok(lm.from === '2026-02-01' && lm.to === '2026-02-28' && lm.prev.from === '2026-01-01' && lm.prev.to === '2026-01-31', 'last month with its real length');
+ok(C.periodRange('quarter', '2026-11-06').from === '2026-10-01' && C.periodRange('ytd', '2026-11-06').prev.to === '2025-11-06', 'quarter and year to date');
+ok(C.addMonths('2026-03-31', -1) === '2026-02-28', 'month steps keep valid dates');
+const dq = C.dataQuality({ jobs: [{ lat: null }], trips: [{ date: '2026-10-01', cls: 'review' }], txns: [
+  { date: '2026-08-03', source: 'csv:a', status: 'ok' }, { date: '2026-10-03', source: 'csv:a', status: 'review' }] }, 2026, '2026-11-06');
+ok(dq.txReview === 1 && dq.tripReview === 1 && dq.jobsNoLoc === 1 && dq.missingMonths.join() === '2026-09', 'data checks: reviews left, jobs without location, a month with no statement');
+const SC = { settings: { closedYears: [2025] }, jobs: [{ id: 'j', code: 'B-9', source: 'onedrive', billTo: 'own' }], trips: [{ id: 'x', date: '2025-12-01', cls: 'employer', source: 'manual', jobIds: ['j'], start: {}, end: {}, miles: 3 }] };
+ok(C.refileOwnJobTrips(SC).length === 0 && SC.trips[0].cls === 'employer', 'a closed year is never re-filed');
+
 console.log(fails ? `\n${fails} check(s) failed` : '\nall checks passed');
 process.exit(fails ? 1 : 0);

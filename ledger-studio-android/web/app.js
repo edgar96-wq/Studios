@@ -26,6 +26,7 @@ const ICON = {
   x: '<path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/>',
   up: '<path d="M12 16V5M7.5 9.5L12 5l4.5 4.5"/><path d="M5 19h14"/>',
   down: '<path d="M12 5v11M7.5 11.5L12 16l4.5-4.5"/><path d="M5 19h14"/>',
+  reports: '<path d="M4 20h16"/><path d="M5.5 20v-6M10 20V9M14.5 20v-8.5M19 20V5.5"/>',
   gps: '<circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="7.5"/><path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5"/>'
 };
 const ic = (n) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[n]}</svg>`;
@@ -36,7 +37,7 @@ const DEFAULTS = {
   vehicle: { name: '', inService: '', odoStart: null, odoEnd: null }, autoClassify: true
 };
 const S = { settings: structuredClone(DEFAULTS), jobs: [], trips: [], txns: [], loaded: false };
-const U = { tab: 'home', tripFilter: 'all', bookSeg: 'expense', snoozed: new Set() };
+const U = { tab: 'home', tripFilter: 'all', bookSeg: 'expense', rep: 'ytd', snoozed: new Set() };
 const CLS = { business: 'Business', personal: 'Personal', commute: 'Commute', employer: 'Employer job', review: 'To review' };
 
 /* ---------- storage: claude.ai db when available, else this device ---------- */
@@ -65,6 +66,7 @@ const Store = {
   async put(coll, rec) { rec.updated = new Date().toISOString(); if (this.mode === 'cloud') { try { await this.db.doc(`${BASE}/${coll}/${rec.id}`).set(clean(rec)); } catch (e) { toast('Not saved: ' + (e.message || e.code)); } } else this.local(); },
   async putMany(coll, recs) { if (this.mode !== 'cloud') { recs.forEach(r => r.updated = new Date().toISOString()); return this.local(); } for (let i = 0; i < recs.length; i += 15) await Promise.all(recs.slice(i, i + 15).map(r => this.put(coll, r))); },
   async del(coll, id) { if (this.mode === 'cloud') { try { await this.db.doc(`${BASE}/${coll}/${id}`).delete(); } catch (e) { toast('Not deleted: ' + (e.message || e.code)); } } else this.local(); },
+  async delMany(coll, ids) { if (this.mode !== 'cloud') return this.local(); for (let i = 0; i < ids.length; i += 15) await Promise.all(ids.slice(i, i + 15).map(id => this.del(coll, id))); },
   async putSettings() { if (this.mode === 'cloud') { try { await this.db.doc(BASE + '/meta/settings').set(clean(S.settings)); } catch (e) { toast('Settings not saved: ' + (e.message || e.code)); } } else this.local(); }
 };
 async function loadInto() {
@@ -90,7 +92,7 @@ function showStore() {
 }
 
 /* ---------- shell: tabs, rails, sheet, toast ---------- */
-const TABS = [['home', 'Home'], ['trips', 'Trips'], ['jobs', 'Places'], ['books', 'Books'], ['taxes', 'Taxes']];
+const TABS = [['home', 'Home'], ['trips', 'Trips'], ['jobs', 'Places'], ['books', 'Books'], ['reports', 'Reports'], ['taxes', 'Taxes']];
 function renderTabs() {
   $('#tabs').innerHTML = TABS.map(([k, l]) => `<button class="tab" role="tab" data-tab="${k}" aria-selected="${U.tab === k}">${ic(k)}<span>${l}</span></button>`).join('');
 }
@@ -110,6 +112,9 @@ addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#sheet').hidden
 
 /* ---------- derived ---------- */
 const yr = (d) => d && d.startsWith(String(YEAR));
+const isClosed = (d) => !!d && (S.settings.closedYears || []).map(String).includes(String(d).slice(0, 4));
+const closedNote = (d) => `<div class="banner"><span><b>${String(d).slice(0, 4)} is closed</b> because you filed it. Reopen it in Taxes to change anything.</span></div>`;
+const shutToast = () => toast('That year is closed. Reopen it in Taxes first.');
 const jobById = (id) => S.jobs.find(j => j.id === id);
 const hasSample = () => S.settings.sample || S.jobs.some(x => x.sample) || S.trips.some(x => x.sample) || S.txns.some(x => x.sample);
 function reviewTrips() { return S.trips.filter(t => t.cls === 'review' && !U.snoozed.has(t.id)).sort((a, b) => (b.start.t || '').localeCompare(a.start.t || '')); }
@@ -119,7 +124,7 @@ function reviewTxns() { return S.txns.filter(t => t.status === 'review' && !U.sn
 function render() {
   const ws = $('#ws');
   if (!S.loaded) { ws.innerHTML = '<div class="empty">Opening your books…</div>'; return; }
-  ws.innerHTML = ({ home: vHome, trips: vTrips, jobs: vJobs, books: vBooks, taxes: vTaxes })[U.tab]();
+  ws.innerHTML = ({ home: vHome, trips: vTrips, jobs: vJobs, books: vBooks, reports: vReports, taxes: vTaxes })[U.tab]();
   requestAnimationFrame(() => tabJoin(false));
 }
 function sampleBanner() {
@@ -130,6 +135,12 @@ function setupBanner() {
   if (s.home && s.home.lat != null) return '';
   return `<div class="banner"><span><b>Set your home base</b> so trips can be matched to home, your saved places and job sites.</span><button class="chip-btn plum" data-tool="setup">${ic('setup')}Open setup</button></div>`;
 }
+/* last month's statement isn't in yet (only once you've started importing statements) */
+function stmtBanner() {
+  const t = today(), last = addMonths(t.slice(0, 7) + '-01', -1).slice(0, 7), q = dataQuality(S, +last.slice(0, 4), t);
+  if (!S.txns.some(x => String(x.source || '').startsWith('csv:')) || !q.missingMonths.includes(last)) return '';
+  return `<div class="banner"><span><b>${dlab(last + '-15', { month: 'long' })} statement</b> isn't imported yet. Download the CSV from your bank and bring it in; known merchants and company pay file themselves.</span><button class="chip-btn plum" data-act="imp-csv">${ic('up')}Import statement</button></div>`;
+}
 function vHome() {
   const s = S.settings, b = books(S, YEAR), tx = taxOn(b.net, s), q = quarterly(S, YEAR), t = today();
   const next = q.find(Q => Q.due >= t) || q[q.length - 1], paidNext = +(s.paid || {})[next.q] || 0;
@@ -137,7 +148,7 @@ function vHome() {
   const rt = reviewTrips(), rx = reviewTxns();
   const recent = [...S.trips].filter(x => yr(x.date)).sort((a, b) => (b.start.t || '').localeCompare(a.start.t || '')).slice(0, 4);
   return `<div class="view">
-    ${sampleBanner()}${setupBanner()}${NATIVE && permsMissing() ? `<div class="banner"><span><b>Finish tracking setup</b> so drives are logged on their own.</span><button class="chip-btn plum" data-act="perm-sheet">${ic('setup')}${permsMissing()} step${permsMissing() > 1 ? 's' : ''} left</button></div>` : ''}
+    ${sampleBanner()}${setupBanner()}${stmtBanner()}${NATIVE && permsMissing() ? `<div class="banner"><span><b>Finish tracking setup</b> so drives are logged on their own.</span><button class="chip-btn plum" data-act="perm-sheet">${ic('setup')}${permsMissing()} step${permsMissing() > 1 ? 's' : ''} left</button></div>` : ''}
     <section class="stats">
       <div class="stat hero"><span class="k">Business miles ${YEAR}</span><span class="v">${mi(b.miles.business)}</span><span class="s">${money(b.mileDed)} deduction at the IRS rate</span></div>
       <div class="stat"><span class="k">Net profit</span><span class="v">${money(b.net)}</span><span class="s">${money(b.income)} income − ${money(b.expenses)} deductions</span></div>
@@ -283,6 +294,7 @@ function reviewGroups(list) {
       <div class="btns gbtns"><button class="chip-btn ok" data-gfile="${i}">${ic('check')}File all</button><button class="chip-btn" data-gchange="${i}">Change</button></div></div>`).join('')}</div>`;
 }
 async function fileGroup(i, line) {
+  if (isClosed(YEAR + '-01-01')) return shutToast();
   const g = groupsOf(S.txns.filter(x => yr(x.date) && x.status === 'review'))[i]; if (!g) return;
   const ln = line || g.line;
   for (const x of g.xs) { x.line = ln; x.status = 'ok'; }
@@ -317,7 +329,9 @@ function vTaxes() {
     return `<tr><td><span class="ln">${k}</span>${esc(name)}</td><td class="r">${money(v, 2)}</td></tr>`;
   }).join('');
   const totPaid = q.reduce((a, Q) => a + (+paid[Q.q] || 0), 0);
+  const closed = isClosed(YEAR + '-01-01'), past = YEAR < +t.slice(0, 4);
   return `<div class="view">
+    ${closed ? `<div class="banner"><span><b>${YEAR} is closed.</b> Nothing in it can change: imports skip its rows and trips stay as filed.</span><button class="chip-btn" data-act="reopen-year">Reopen ${YEAR}</button></div>` : dqBlock(YEAR, 'Before you file ' + YEAR)}
     <section class="stats">
       <div class="stat hero"><span class="k">Estimated federal tax on your business ${YEAR}</span><span class="v">${money(tx.total)}</span><span class="s">Self-employment ${money(tx.se)} · added income tax ${money(tx.inc)}</span></div>
       <div class="stat"><span class="k">Paid so far</span><span class="v">${money(totPaid)}</span><span class="s">${totPaid >= tx.total ? 'Covered so far' : money(tx.total - totPaid) + ' still to pay'}</span></div>
@@ -347,9 +361,126 @@ function vTaxes() {
         <div class="btns" style="margin-top:12px"><button class="chip-btn" data-tool="setup">${ic('setup')}Edit tax profile</button></div></div>
     </section>
     <section><div class="sec-head"><h2>Hand-off for filing</h2></div>
-      <div class="btns"><button class="btn" data-exp="mileage">${ic('down')}Mileage log (.csv)</button><button class="btn ghost" data-exp="schedc">${ic('down')}Schedule C summary (.csv)</button><button class="btn ghost" data-exp="txns">${ic('down')}All transactions (.csv)</button></div>
+      <div class="btns"><button class="btn" data-exp="mileage">${ic('down')}Mileage log (.csv)</button><button class="btn ghost" data-exp="schedc">${ic('down')}Schedule C summary (.csv)</button><button class="btn ghost" data-exp="txns">${ic('down')}All transactions (.csv)</button>${past && !closed ? `<button class="btn ghost" data-act="close-year">${ic('check')}Close ${YEAR} (after you file)</button>` : ''}</div>
       <p class="note">${YEAR} figures: 2026 brackets and standard deduction from IRS Rev. Proc. 2025-32, Social Security wage base ${money(+s.ssWageBase || 184500)}, mileage rate from your Setup table. A simplified estimate, not tax advice; have a CPA or tax software check the return.</p></section>
   </div>`;
+}
+
+/* ---------- reports: P&L against the period before, money by company, profit per job, merchants ---------- */
+const catShort = (k) => String(LINES[k] || k).replace(/\s*\(.*\)\s*$/, '');
+function repKinds() {
+  const cy = +today().slice(0, 4), k = [['month', 'This month'], ['last-month', 'Last month'], ['quarter', 'This quarter'], ['ytd', 'Year to date'], ['last-year', String(cy - 1)]];
+  if (YEAR !== cy && YEAR !== cy - 1) k.push(['year', String(YEAR)]);
+  return k;
+}
+function repPeriod() { if (!repKinds().some(k => k[0] === U.rep)) U.rep = 'ytd'; return periodRange(U.rep, today(), YEAR); }
+function incomeBy(from, to) {
+  const o = {};
+  for (const x of S.txns) if (x.kind === 'income' && x.date >= from && x.date <= to) { const k = catOf(x.line, 'income'); if (CAT[k].line) o[k] = (o[k] || 0) + x.amount; }
+  return o;
+}
+function plReport(P) {
+  const A = booksRange(S, P.from, P.to), B = booksRange(S, P.prev.from, P.prev.to), iA = incomeBy(P.from, P.to), iB = incomeBy(P.prev.from, P.prev.to);
+  const ded = (L, k) => (L[k] || 0) * (k === 'meals' ? 0.5 : 1), rows = [{ h: 'Income' }];
+  for (const k of [...new Set([...Object.keys(iA), ...Object.keys(iB)])]) rows.push({ ln: '1', name: catShort(k), a: iA[k] || 0, b: iB[k] || 0 });
+  rows.push({ t: 'Total income', a: A.income, b: B.income }, { h: 'Deductions' }, { ln: '9', name: 'Car & truck', a: A.ded['9'] || 0, b: B.ded['9'] || 0 });
+  const ek = [...new Set([...Object.keys(A.lines), ...Object.keys(B.lines)])].filter(k => CAT[k] && CAT[k].line && CAT[k].line !== '9').sort((p, q) => ded(A.lines, q) - ded(A.lines, p) || ded(B.lines, q) - ded(B.lines, p));
+  for (const k of ek) rows.push({ ln: CAT[k].line, name: catShort(k), a: ded(A.lines, k), b: ded(B.lines, k) });
+  rows.push({ t: 'Total deductions', a: A.expenses, b: B.expenses }, { t: 'Net profit', a: A.net, b: B.net });
+  return { A, B, rows };
+}
+function chg(a, b) {
+  const d = a - b;
+  if (Math.abs(d) < 0.5) return '<span class="muted">—</span>';
+  return (d > 0 ? '+' : '−') + money(Math.abs(d)) + (Math.abs(b) >= 1 && Math.abs(d / b) < 10 ? ` <small class="muted">${d > 0 ? '+' : '−'}${Math.round(Math.abs(d / b) * 100)}%</small>` : '');
+}
+/* monthly income vs deductions; a one-month period shows the six months up to it */
+function monthSeries(P) {
+  let m = P.from.slice(0, 7) + '-01', wide = false;
+  if (addMonths(m, 2) > P.to) { m = addMonths(P.to.slice(0, 7) + '-01', -5); wide = true; }
+  const out = [];
+  for (; m <= P.to; m = addMonths(m, 1)) { const e = monthEnd(m) < P.to ? monthEnd(m) : P.to, r = booksRange(S, m, e); out.push({ m, inc: r.income, exp: r.expenses }); }
+  return { out, wide };
+}
+function niceMax(v) { if (v <= 0) return 100; const p = Math.pow(10, Math.floor(Math.log10(v))), f = v / p; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * p; }
+const kMoney = (v) => v >= 1000 ? '$' + (v / 1000).toLocaleString('en-US', { maximumFractionDigits: v >= 10000 ? 0 : 1 }) + 'k' : '$' + Math.round(v);
+function monthChart(ser) {
+  const W = Math.round(Math.min(640, Math.max(320, (innerWidth || 640) - 70))), H = W < 480 ? 190 : 210, L = 46, R = 8, T = 10, B = 26, n = ser.length, gw = (W - L - R) / n, bw = Math.max(6, Math.min(22, gw * 0.3));
+  const max = niceMax(Math.max(...ser.map(s => Math.max(s.inc, s.exp)))), y = (v) => T + (H - T - B) * (1 - v / max);
+  const bar = (x, v, cls) => { const h = Math.max(0, y(0) - y(v)); if (h < 0.5) return ''; const r = Math.min(4, h, bw / 2), t = y(v);
+    return `<path class="${cls}" d="M${x} ${y(0)}V${t + r}Q${x} ${t} ${x + r} ${t}H${x + bw - r}Q${x + bw} ${t} ${x + bw} ${t + r}V${y(0)}Z"/>`; };
+  const grid = [0, 0.5, 1].map(f => `<line class="g" x1="${L}" x2="${W - R}" y1="${y(max * f)}" y2="${y(max * f)}"/><text class="yl" x="${L - 6}" y="${y(max * f) + 4}">${kMoney(max * f)}</text>`).join('');
+  const groups = ser.map((s, i) => { const cx = L + gw * i + gw / 2, x1 = cx - bw - 1, x2 = cx + 1;
+    return `<g class="mon" data-mon="${i}"><rect class="hit" x="${L + gw * i}" y="${T}" width="${gw}" height="${H - T}"/>${bar(x1, s.inc, 'inc')}${bar(x2, s.exp, 'exp')}
+      <text class="xl" x="${cx}" y="${H - 8}">${dlab(s.m.slice(0, 7) + '-15', { month: 'short' })}</text><title>${dlab(s.m.slice(0, 7) + '-15', { month: 'long', year: 'numeric' })}: income ${money(s.inc)}, deductions ${money(s.exp)}</title></g>`; }).join('');
+  return `<svg class="mchart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Income and deductions by month">${grid}${groups}<line class="base" x1="${L}" x2="${W - R}" y1="${y(0)}" y2="${y(0)}"/></svg>`;
+}
+function dqNotes(year) {
+  const q = dataQuality(S, year, today()), out = [], ml = (k) => dlab(k + '-15', { month: 'short' });
+  if (q.txReview) out.push(`${q.txReview} transaction${q.txReview === 1 ? '' : 's'} still to review <button class="chip-btn" data-act="books-review">Review</button>`);
+  if (q.tripReview) out.push(`${q.tripReview} trip${q.tripReview === 1 ? '' : 's'} still to classify <button class="chip-btn" data-go="home">Classify</button>`);
+  if (q.noStatements) out.push(`No bank statement imported for ${year} yet <button class="chip-btn" data-act="imp-csv">${ic('up')}Import</button>`);
+  else if (q.missingMonths.length) out.push(`No statement rows for ${q.missingMonths.map(ml).join(', ')} <button class="chip-btn" data-act="imp-csv">${ic('up')}Import</button>`);
+  if (q.jobsNoLoc) out.push(`${q.jobsNoLoc} job${q.jobsNoLoc === 1 ? '' : 's'} without a location, so trips there can't be matched <button class="chip-btn" data-go="jobs">Places</button>`);
+  return out;
+}
+function dqBlock(year, title) {
+  const n = dqNotes(year);
+  return n.length ? `<div class="dq"><b>${title}</b><ul>${n.map(x => `<li>${x}</li>`).join('')}</ul></div>` : '';
+}
+function vReports() {
+  const P = repPeriod(), { A, rows } = plReport(P), ms = monthSeries(P), cm = companyMoney(S, P.from, P.to), jp = jobProfit(S, P.from, P.to), mt = merchantTop(S, P.from, P.to, 10);
+  const span = `${dlab(P.from, { month: 'short', day: 'numeric', year: 'numeric' })} – ${dlab(P.to, { month: 'short', day: 'numeric', year: 'numeric' })}`;
+  const mtMax = Math.max(1, ...mt.map(x => x.total)), jpShown = jp.slice(0, 40);
+  return `<div class="view">
+    <div class="sec-head"><div class="chips" role="group" aria-label="Period">${repKinds().map(([k, l]) => `<button class="chip" data-rep="${k}" aria-pressed="${U.rep === k}">${l}</button>`).join('')}</div>
+      <div class="btns"><button class="chip-btn" data-exp="pl">${ic('down')}P&amp;L (.csv)</button></div></div>
+    <p class="note" style="margin-top:-6px">${span} · compared with ${esc(P.prev.label.toLowerCase())}</p>
+    ${dqBlock(+P.to.slice(0, 4), 'Not final yet')}
+    <section class="stats">
+      <div class="stat hero"><span class="k">Net profit</span><span class="v">${money(A.net)}</span><span class="s">${money(A.income)} income − ${money(A.expenses)} deductions</span></div>
+      <div class="stat"><span class="k">Business miles</span><span class="v">${mi(A.miles.business + (A.miles.employer || 0))}</span><span class="s">${money(A.mileDed)} at the IRS rate</span></div>
+    </section>
+    <section><div class="sec-head"><h2>Profit &amp; loss</h2></div>
+      <div class="tbl-wrap"><table class="pl"><thead><tr><th>Category</th><th class="r">${esc(P.label)}</th><th class="r">${esc(P.prev.label)}</th><th class="r">Change</th></tr></thead><tbody>
+      ${rows.map(r => r.h ? `<tr class="hd"><td colspan="4">${r.h}</td></tr>` : r.t ? `<tr class="total"><td>${r.t}</td><td class="r">${money(r.a)}</td><td class="r">${money(r.b)}</td><td class="r">${chg(r.a, r.b)}</td></tr>`
+        : `<tr><td><span class="ln">${r.ln}</span>${esc(r.name)}</td><td class="r">${money(r.a)}</td><td class="r">${money(r.b)}</td><td class="r">${chg(r.a, r.b)}</td></tr>`).join('')}
+      </tbody></table></div>
+      <p class="note">Car &amp; truck is your business miles × the IRS rate plus parking and tolls; fuel and repairs are covered by that rate. Meals count at 50%.</p></section>
+    <section class="card"><div class="sec-head" style="margin-bottom:6px"><h3>By month${ms.wide ? ' (last 6 months)' : ''}</h3>
+      <div class="legend"><span><i class="sw inc"></i>Income</span><span><i class="sw exp"></i>Deductions</span></div></div>
+      ${monthChart(ms.out)}<div class="mtip muted" id="mTip">Tap a month for its figures.</div></section>
+    <section><div class="sec-head"><h2>Survey companies</h2><button class="chip-btn" data-tool="setup">${ic('setup')}Pay per job</button></div>
+      ${cm.rows.length ? `<div class="tbl-wrap"><table><thead><tr><th>Company</th><th class="r">Earned</th><th class="r">Paid</th><th class="r">Owed</th></tr></thead><tbody>
+        ${cm.rows.map(r => `<tr><td>${esc(r.company)}<br><small class="muted">${r.jobs} job${r.jobs === 1 ? '' : 's'} × ${r.rate != null ? money(r.rate) : 'no pay set'}</small></td><td class="r">${r.earned != null ? money(r.earned) : '—'}</td><td class="r">${money(r.paid)}<br><small class="muted">${r.deposits} deposit${r.deposits === 1 ? '' : 's'}</small></td><td class="r">${r.diff == null ? '—' : Math.abs(r.diff) < 0.5 ? '<span class="muted">even</span>' : r.diff > 0 ? `<b>${money(r.diff)}</b><br><small class="muted">not paid yet</small>` : `${money(-r.diff)}<br><small class="muted">paid more</small>`}</td></tr>`).join('')}
+        </tbody></table></div>` : `<div class="empty">No survey jobs or company deposits in this period.</div>`}
+      <p class="note">An estimate: earned = jobs you drove to × pay per job, paid = the company's deposits on your statements. A payment for the last jobs can land in the next period.${cm.unassigned ? ` ${money(cm.unassigned)} of survey deposits couldn't be matched to a company; add its bank text in Setup → Companies.` : ''}</p></section>
+    <section><div class="sec-head"><h2>Profit per job</h2><span class="muted num">${jp.length} job${jp.length === 1 ? '' : 's'}</span></div>
+      ${jp.length ? `<div class="tbl-wrap"><table><thead><tr><th>Job</th><th class="r">Miles</th><th class="r">Pay</th><th class="r">Costs</th><th class="r">Profit</th></tr></thead><tbody>
+        ${jpShown.map(r => `<tr><td><button class="lnk" data-job="${r.id}">${esc(r.code)}</button><br><small class="muted">${esc(r.company)}${r.first ? ' · ' + dlab(r.first, { month: 'short', day: 'numeric' }) : ''}</small></td><td class="r">${mi(r.miles)}</td><td class="r">${r.pay != null ? money(r.pay) : '—'}</td><td class="r">${money(r.car + r.spent)}${r.spent ? `<br><small class="muted">car ${money(r.car)}</small>` : ''}</td><td class="r">${r.profit != null ? `<b>${money(r.profit)}</b>` : '—'}</td></tr>`).join('')}
+        </tbody></table></div>${jp.length > jpShown.length ? `<p class="note">Showing the latest ${jpShown.length}; the P&amp;L export has every job.</p>` : ''}` : `<div class="empty">No drives to survey jobs in this period.</div>`}
+      <p class="note">Costs = the job's miles × the IRS rate (a trip to two jobs is shared) plus expenses linked to the job.</p></section>
+    <section class="card"><h3 style="margin-bottom:12px">Top merchants</h3>
+      ${mt.length ? `<div class="bars">${mt.map(x => `<div class="bar"><span>${esc(x.name)} <span class="muted">· ${esc(catShort(x.cat))}</span></span><span class="track"><span class="fill" style="width:${(x.total / mtMax * 100).toFixed(1)}%"></span></span><span class="v">${money(x.total)}</span></div>`).join('')}</div>`
+        : `<div class="empty">No deductible spending in this period.</div>`}</section>
+  </div>`;
+}
+function monthTip(i) {
+  const P = repPeriod(), s = monthSeries(P).out[i], el = $('#mTip'); if (!s || !el) return;
+  $$('.mchart .mon').forEach(g => g.classList.toggle('on', g.dataset.mon === String(i)));
+  el.innerHTML = `<b>${dlab(s.m.slice(0, 7) + '-15', { month: 'long', year: 'numeric' })}</b> · income ${money(s.inc)} · deductions ${money(s.exp)} · net ${money(s.inc - s.exp)}`;
+}
+function plCSV() {
+  const P = repPeriod(), { rows } = plReport(P), jp = jobProfit(S, P.from, P.to), cm = companyMoney(S, P.from, P.to);
+  const out = [['Profit & loss', `${P.from} to ${P.to}`, `${P.prev.from} to ${P.prev.to}`, 'Change'], ['Line', 'Category', P.label, P.prev.label, 'Change ($)']];
+  for (const r of rows) if (r.h) out.push([], [r.h]); else out.push([r.ln || '', r.t || r.name, r.a.toFixed(2), r.b.toFixed(2), (r.a - r.b).toFixed(2)]);
+  out.push([], ['Survey companies (estimate)'], ['Company', 'Pay per job', 'Jobs', 'Earned', 'Paid', 'Difference']);
+  for (const r of cm.rows) out.push([r.company, r.rate ?? '', r.jobs, r.earned != null ? r.earned.toFixed(2) : '', r.paid.toFixed(2), r.diff != null ? r.diff.toFixed(2) : '']);
+  out.push([], ['Profit per job'], ['Job', 'Company', 'First day', 'Miles', 'Pay', 'Car (IRS rate)', 'Spent', 'Profit']);
+  for (const r of jp) out.push([r.code, r.company, r.first || '', r.miles.toFixed(1), r.pay ?? '', r.car.toFixed(2), r.spent.toFixed(2), r.profit != null ? r.profit.toFixed(2) : '']);
+  const n = dqNotes(+P.to.slice(0, 4)).map(x => x.replace(/<button[\s\S]*?<\/button>/g, '').replace(/<[^>]+>/g, '').trim());
+  if (n.length) { out.push([], ['Not final yet']); for (const x of n) out.push([x]); }
+  return saveFile(`profit-and-loss-${P.from}-to-${P.to}.csv`, toCSV(out), 'text/csv');
 }
 
 /* ---------- trip sheet ---------- */
@@ -378,7 +509,7 @@ function openTrip(id) {
   if (!t) return;
   let cls = t.cls;
   openSheet(isNew ? 'Add a trip' : 'Trip · ' + dlab(t.date), `<div class="form">
-    ${isNew ? '' : mapSVG(t)}
+    ${!isNew && isClosed(t.date) ? closedNote(t.date) : ''}${isNew ? '' : mapSVG(t)}
     ${isNew ? `<div class="f2"><label class="fld">Date<input type="date" id="tDate" value="${t.date}"></label><label class="fld">Miles<input id="tMiles" inputmode="decimal" value=""></label></div>
       <div class="f2"><label class="fld">From<input id="tFrom" value="${esc(t.start.label)}"></label><label class="fld">To<input id="tTo" placeholder="Job site or address"></label></div>
       <div class="f2"><label class="fld">Depart<input type="time" id="tDep"></label><label class="fld">Arrive<input type="time" id="tArr"></label></div>` :
@@ -397,6 +528,7 @@ function openTrip(id) {
     const remBox = $('#tRem', root); if (remBox) remBox.onchange = () => { $('#tRemMore', root).hidden = !remBox.checked; };
     $('#tJob', root).onchange = (e) => { const j = jobById(e.target.value); if (j && !$('#tPurp', root).value) $('#tPurp', root).value = 'Boundary survey – ' + j.code; if (j && j.billTo === 'employer') { cls = 'employer'; $$('#tCls button', root).forEach(x => x.setAttribute('aria-pressed', x.dataset.v === 'employer')); } };
     $('#tSave', root).onclick = async () => {
+      if (isClosed(t.date) || (isNew && isClosed($('#tDate', root).value))) return shutToast();
       const m = parseFloat($('#tMiles', root).value); if (!(m > 0)) { toast('Enter the miles for this trip.'); return; }
       t.miles = +m.toFixed(1); t.cls = cls; t.purpose = $('#tPurp', root).value.trim(); const jv = $('#tJob', root).value; t.jobIds = jv ? [jv] : [];
       if (isNew) {
@@ -411,6 +543,7 @@ function openTrip(id) {
       closeSheet(); render(); await Store.put('trips', t); toast(isNew ? 'Trip added.' : 'Trip saved.');
     };
     const del = $('#tDel', root); if (del) del.onclick = async () => {
+      if (isClosed(t.date)) return shutToast();
       if (del.dataset.armed !== '1') { del.dataset.armed = '1'; del.textContent = 'Tap again to delete'; return; }
       S.trips = S.trips.filter(x => x.id !== t.id); closeSheet(); render(); await Store.del('trips', t.id); toast('Trip deleted.');
     };
@@ -447,6 +580,7 @@ function ruleFromTrip(t, root) {
 }
 async function setTripClass(id, cls) {
   const t = S.trips.find(x => x.id === id); if (!t) return;
+  if (isClosed(t.date)) return shutToast();
   t.cls = cls; t.locked = true; t.reason = 'Classified by you.';
   if (cls === 'personal') t.purpose = 'Personal';
   if (cls === 'business' && !t.purpose) { render(); openTrip(id); toast('Add the business purpose, then save.'); return; }
@@ -494,7 +628,7 @@ async function reclassify() {
   if (!S.settings.autoClassify) return 0;
   const redone = NATIVE ? await redetectRecent() : 0;
   const changed = [];
-  for (const t of S.trips) { if (t.source === 'manual' || t.start.lat == null) continue; const before = JSON.stringify([t.cls, t.purpose, t.start.label, t.end.label]); classifyTrip(t, S); if (JSON.stringify([t.cls, t.purpose, t.start.label, t.end.label]) !== before) changed.push(t); }
+  for (const t of S.trips) { if (t.source === 'manual' || t.start.lat == null || isClosed(t.date)) continue; const before = JSON.stringify([t.cls, t.purpose, t.start.label, t.end.label]); classifyTrip(t, S); if (JSON.stringify([t.cls, t.purpose, t.start.label, t.end.label]) !== before) changed.push(t); }
   if (changed.length) await Store.putMany('trips', changed);
   return changed.length + redone;
 }
@@ -590,7 +724,7 @@ let assetsCap; async function getAssets() { if (assetsCap === undefined) { try {
 async function rememberPayee(kind, payee, line, exceptId) {
   const key = memoKey(kind, payee); if (!key) return 0;
   S.settings.payeeRules = { ...(S.settings.payeeRules || {}), [key]: line };
-  const one = { [key]: line }, upd = S.txns.filter(t => t.id !== exceptId && t.status === 'review' && t.kind === kind && memoFind(one, kind, t.payee));
+  const one = { [key]: line }, upd = S.txns.filter(t => t.id !== exceptId && t.status === 'review' && t.kind === kind && !isClosed(t.date) && memoFind(one, kind, t.payee));
   for (const t of upd) { t.line = line; t.status = 'ok'; t.autoFiled = true; }
   await Store.putSettings(); if (upd.length) await Store.putMany('txns', upd);
   return upd.length;
@@ -617,7 +751,7 @@ function openTx(id, kind) {
   const isNew = !id, x = isNew ? { id: uid('tx'), schema: 1, date: today(), kind: kind || 'expense', amount: 0, payee: '', line: kind === 'income' ? 'survey-pay' : 'field-supplies', memo: '', jobId: null, source: 'manual', externalId: null, status: 'ok' } : structuredClone(S.txns.find(t => t.id === id));
   let k = x.kind, file = null;
   const lineOpts = catOptions;
-  openSheet(isNew ? (k === 'income' ? 'Add income' : 'Add an expense') : (k === 'income' ? 'Income' : 'Expense'), `<div class="form">
+  openSheet(isNew ? (k === 'income' ? 'Add income' : 'Add an expense') : (k === 'income' ? 'Income' : 'Expense'), `<div class="form">${!isNew && isClosed(x.date) ? closedNote(x.date) : ''}
     <div class="seg" id="xKind"><button type="button" data-v="expense" aria-pressed="${k === 'expense'}">Expense</button><button type="button" data-v="income" aria-pressed="${k === 'income'}">Income</button></div>
     <div class="f2"><label class="fld">Amount ($)<input id="xAmt" inputmode="decimal" value="${x.amount || ''}" placeholder="0.00"></label><label class="fld">Date<input type="date" id="xDate" value="${x.date}"></label></div>
     <label class="fld">${k === 'income' ? 'From (client)' : 'Paid to'}<input id="xPayee" value="${esc(x.payee)}" list="payees"></label>
@@ -637,6 +771,7 @@ function openTx(id, kind) {
     $('#xFile', root).onchange = (e) => { file = e.target.files[0] || null; };
     $('#xCancel', root).onclick = closeSheet;
     $('#xSave', root).onclick = async () => {
+      if ((!isNew && isClosed(x.date)) || isClosed($('#xDate', root).value)) return shutToast();
       const remember = $('#xRem', root).checked;
       const a = parseFloat(($('#xAmt', root).value || '').replace(/[$,]/g, '')); if (!(a > 0)) { toast('Enter an amount.'); return; }
       x.amount = +a.toFixed(2); x.kind = k; x.date = $('#xDate', root).value || today(); x.payee = $('#xPayee', root).value.trim(); x.line = $('#xLine', root).value;
@@ -653,6 +788,7 @@ function openTx(id, kind) {
       toast((isNew ? (k === 'income' ? 'Income added.' : 'Expense added.') : 'Saved.') + (n ? ` ${n} more from this merchant filed the same way.` : ''));
     };
     const del = $('#xDel', root); if (del) del.onclick = async () => {
+      if (isClosed(x.date)) return shutToast();
       if (del.dataset.armed !== '1') { del.dataset.armed = '1'; del.textContent = 'Tap again to delete'; return; }
       S.txns = S.txns.filter(t => t.id !== x.id); closeSheet(); render(); await Store.del('txns', x.id); toast('Deleted.');
     };
@@ -683,7 +819,9 @@ function openSetup() {
     <div class="f2"><label class="fld">Odometer Jan 1<input id="sVO1" inputmode="numeric" value="${s.vehicle.odoStart ?? ''}"></label><label class="fld">Odometer Dec 31<input id="sVO2" inputmode="numeric" value="${s.vehicle.odoEnd ?? ''}"></label></div>
     <h3>Companies</h3>
     <div class="why">Survey jobs are your own contract work (1099), so their miles are deductible. Tick a company only if it pays your mileage: its jobs then count as employer jobs.</div>
-    <div class="list">${surveyCompanies().map((name, i) => `<label class="check"><input type="checkbox" id="sReimb${i}" data-company="${esc(name)}" ${(s.reimburse || {})[name] ? 'checked' : ''}><span>${esc(name)}<small>Pays my mileage</small></span></label>`).join('')}</div>
+    <div class="list">${companiesOf(S).map((name, i) => `<div class="co-row"><label class="check"><input type="checkbox" data-company="${esc(name)}" ${(s.reimburse || {})[name] ? 'checked' : ''}><span>${esc(name)}<small>Pays my mileage</small></span></label>
+      <div class="f2"><label class="fld">Pay per job ($)<input data-corate="${esc(name)}" inputmode="decimal" value="${rateOf(S, name) ?? ''}" placeholder="none"></label><label class="fld">Bank text<input data-cokey="${esc(name)}" value="${esc((s.companyKeys || {})[name] || '')}" placeholder="${esc(companyKeys(name)[0] || '')}"></label></div></div>`).join('')}</div>
+    <div class="why">Pay per job feeds Reports (earned vs paid, profit per job). Bank text is how the company's deposits read on your statement, comma separated, when the name alone isn't found; deposits that match are filed as survey pay without asking.</div>
     <h3>Jobs from OneDrive</h3>
     <div class="why">Survey jobs come from GAIA/Jobs. <button class="chip-btn" data-act="od-sheet" style="margin-top:6px">${ic('files')}OneDrive work</button></div>
     <h3>Data</h3>
@@ -704,6 +842,8 @@ function openSetup() {
       const num = (v) => v === '' ? null : parseFloat(v);
       const reimb = {}; $$('[data-company]', root).forEach(cb => { if (cb.checked) reimb[cb.dataset.company] = true; });
       const billingChanged = JSON.stringify(reimb) !== JSON.stringify(s.reimburse || {}); s.reimburse = reimb;
+      const cr = {}, ck = {}; $$('[data-corate]', root).forEach(el => { const v = el.value.replace(/[$,\s]/g, ''); if (v !== '' && !isNaN(+v)) cr[el.dataset.corate] = +v; else if (v === '' && DEFAULT_RATES[el.dataset.corate] != null) cr[el.dataset.corate] = ''; });
+      $$('[data-cokey]', root).forEach(el => { const v = el.value.trim(); if (v) ck[el.dataset.cokey] = v; }); s.companyRates = cr; s.companyKeys = ck;
       s.vehicle = { name: $('#sVN', root).value.trim(), inService: $('#sVS', root).value, odoStart: num($('#sVO1', root).value), odoEnd: num($('#sVO2', root).value) };
       s.rates = s.rates.filter(r => r.from && r.cents > 0).sort((a, b) => a.from.localeCompare(b.from));
       S.settings = s; closeSheet(); showStore(); await Store.putSettings();
@@ -759,9 +899,16 @@ function openFiles() {
       <button class="row" data-act="imp-csv"><div class="when">${ic('books')}</div><div class="main"><div class="title">Bank or card statement (.csv)</div><div class="sub">The CSV download from most banks and cards. Already-imported rows are skipped, so overlapping months are safe.</div></div><div></div></button>
       <button class="row" data-act="imp-jobs"><div class="when">${ic('jobs')}</div><div class="main"><div class="title">Survey Studio jobs (.json)</div><div class="sub">Job number, address and lat/lon or FL West SPC N/E.</div></div><div></div></button>
       <button class="row" data-act="imp-backup"><div class="when">${ic('files')}</div><div class="main"><div class="title">Restore a backup (.json)</div><div class="sub">Merges by record id. Nothing is deleted.</div></div><div></div></button>
-    </div>
+    </div>${recentImports()}
     <h3>Take data out</h3>
     <div class="btns"><button class="btn" data-exp="mileage">${ic('down')}Mileage log</button><button class="btn ghost" data-exp="schedc">${ic('down')}Schedule C</button><button class="btn ghost" data-exp="txns">${ic('down')}Transactions</button><button class="btn ghost" data-exp="backup">${ic('down')}Backup (.json)</button></div></div>`);
+}
+function recentImports() {
+  const L = (S.settings.imports || []).slice(0, 6); if (!L.length) return '';
+  return `<h3>Recent statement imports</h3><div class="list">${L.map(x => {
+    const shut = isClosed(x.from) || isClosed(x.to);
+    return `<div class="row static"><div class="when">${new Date(x.at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div><div class="main"><div class="title">${esc(x.file)}</div><div class="sub">${x.added.length} added${x.updated.length ? `, ${x.updated.length} updated` : ''} · ${x.from ? dlab(x.from, { month: 'short', day: 'numeric' }) + ' – ' + dlab(x.to, { month: 'short', day: 'numeric', year: 'numeric' }) : ''}</div></div>${shut ? '<span class="muted" style="font-size:12px">Year closed</span>' : `<button class="chip-btn" data-undo="${x.id}">${ic('x')}Undo</button>`}</div>`; }).join('')}</div>
+    <p class="note">Undo removes the rows that import added, even ones you filed since, and puts back the rows it changed. Merchant rules you saved stay.</p>`;
 }
 async function importGPX(text, name) {
   const pts = parseGPX(text); if (pts.length < 2) { toast('No timed track points in ' + name + '.'); return; }
@@ -771,28 +918,51 @@ async function importGPX(text, name) {
   toast(`${add.length} trips found in ${name}${found.length - add.length ? `, ${found.length - add.length} already here` : ''}.`);
 }
 async function importCSV(text, name) {
-  const r = csvToTxns(text, name, S.settings.payeeRules || {}); if (r.error) { toast(r.error); return; }
+  const r = csvToTxns(text, name, S.settings.payeeRules || {}, { companies: companiesOf(S), keys: S.settings.companyKeys || {} }); if (r.error) { toast(r.error); return; }
   /* index what's already here by date + amount, so a classified copy of a statement updates rows instead of adding twins */
   const idx = new Map(); for (const t of S.txns) { const k = t.date + '|' + t.amount.toFixed(2); (idx.get(k) || idx.set(k, []).get(k)).push(t); }
-  const add = [], upd = []; let skip = 0;
+  const add = [], upd = [], before = []; let skip = 0, shut = 0;
   for (const t of r.txns) {
+    if (isClosed(t.date)) { shut++; continue; }
     const j = t.jobCode && S.jobs.find(x => x.code === t.jobCode); if (j) t.jobId = j.id; delete t.jobCode;
     const ex = (idx.get(t.date + '|' + t.amount.toFixed(2)) || []).find(x => sameTxn(x, t));
     if (!ex) { add.push(t); continue; }
     if (t.classifiedBy === 'file' && ex.status === 'review') { /* the helper sorted it: take its line, note and job */
+      before.push({ id: ex.id, before: { line: ex.line, status: ex.status, classifiedBy: ex.classifiedBy || null, memo: ex.memo || '', jobId: ex.jobId || null } });
       ex.line = t.line; ex.status = t.status; ex.classifiedBy = 'file'; if (t.memo && !ex.memo) ex.memo = t.memo; if (t.jobId && !ex.jobId) ex.jobId = t.jobId; upd.push(ex);
     } else skip++;
   }
-  S.txns.push(...add); closeSheet(); U.tab = 'books'; U.bookSeg = 'review'; renderTabs(); render(); tabJoin(true);
-  await Store.putMany('txns', [...add, ...upd]);
-  const filed = [...add, ...upd].filter(t => t.status === 'ok').length, rev = [...add, ...upd].filter(t => t.status === 'review').length;
-  toast(`${add.length} new` + (upd.length ? `, ${upd.length} updated` : '') + `: ${filed} filed, ${rev} to review` + (skip ? `, ${skip} already here` : '') + '.');
+  S.txns.push(...add);
+  if (add.length || upd.length) {
+    const ds = r.txns.map(t => t.date).sort();
+    S.settings.imports = [{ id: uid('imp'), file: name, at: new Date().toISOString(), added: add.map(t => t.id), updated: before, from: ds[0], to: ds[ds.length - 1], rows: r.txns.length }, ...(S.settings.imports || [])].slice(0, 20);
+  }
+  closeSheet(); U.tab = 'books'; U.bookSeg = 'review'; renderTabs(); render(); tabJoin(true);
+  await Store.putMany('txns', [...add, ...upd]); if (add.length || upd.length) await Store.putSettings();
+  const all = [...add, ...upd], filed = all.filter(t => t.status === 'ok').length, rev = all.filter(t => t.status === 'review').length, co = all.filter(t => t.classifiedBy === 'company').length;
+  toast(`${add.length} new` + (upd.length ? `, ${upd.length} updated` : '') + `: ${filed} filed${co ? ` (${co} company pay)` : ''}, ${rev} to review` + (skip ? `, ${skip} already here` : '') + (shut ? `, ${shut} in a closed year skipped` : '') + (all.length ? '. Undo it in Files.' : '.'));
 }
-/* the companies that hire you: the WO-prefix table (Integration Spec §3) plus any client of a survey job */
-function surveyCompanies() {
-  const set = new Set(COMPANY_PREFIX.map(x => x[1]));
-  for (const j of S.jobs) if (SURVEY_SOURCES.includes(j.source) && j.client) set.add(j.client);
-  return [...set];
+/* take one statement import back out: delete the rows it added, put back what it changed */
+async function undoImport(id) {
+  const L = (S.settings.imports || []).find(x => x.id === id); if (!L) return;
+  const gone = new Set(L.added), kept = [];
+  const rm = S.txns.filter(t => gone.has(t.id)); S.txns = S.txns.filter(t => !gone.has(t.id));
+  for (const u of L.updated) { const t = S.txns.find(x => x.id === u.id); if (!t) continue; Object.assign(t, u.before); if (!u.before.classifiedBy) delete t.classifiedBy; if (!u.before.jobId) delete t.jobId; kept.push(t); }
+  S.settings.imports = S.settings.imports.filter(x => x.id !== id);
+  await Store.delMany('txns', rm.map(t => t.id));
+  await Store.putMany('txns', kept); await Store.putSettings();
+  closeSheet(); render(); toast(`Import of ${L.file} undone: ${rm.length} removed${kept.length ? `, ${kept.length} put back` : ''}.`);
+}
+/* close a tax year after filing: its trips and transactions stop changing (imports skip it, nothing is re-filed) */
+async function closeYear(on) {
+  const ys = new Set((S.settings.closedYears || []).map(String));
+  if (on) {
+    const q = dataQuality(S, YEAR, today()), open = q.txReview + q.tripReview;
+    const b = $('[data-act="close-year"]'); if (open && b && b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = `${open} still to review. Tap again to close anyway`; return; }
+    ys.add(String(YEAR));
+  } else ys.delete(String(YEAR));
+  S.settings.closedYears = [...ys].sort(); render(); await Store.putSettings();
+  toast(on ? `${YEAR} closed. Make a backup now (Files → Backup) and keep it with your return.` : `${YEAR} reopened.`);
 }
 /* survey jobs: own contract work unless the company pays the mileage; trips filed as employer for own jobs → business */
 async function applyCompanyBilling() {
@@ -855,12 +1025,15 @@ function exportData(kind) {
       ['Vehicle', s.vehicle?.name || ''], ['Placed in service', s.vehicle?.inService || ''], ['Odometer Jan 1', s.vehicle?.odoStart ?? ''], ['Odometer Dec 31', s.vehicle?.odoEnd ?? '']);
     return saveFile(`mileage-log-${y}.csv`, toCSV(rows), 'text/csv');
   }
+  if (kind === 'pl') return plCSV();
   if (kind === 'schedc') {
     const rows = [['Schedule C line', 'Description', 'Amount ($)'], ['1', 'Gross receipts', b.income.toFixed(2)]];
     for (const [k, v] of Object.entries(b.ded).sort()) rows.push([k, k === '9' ? 'Car & truck (standard mileage + parking/tolls)' : SCHED_C[k], v.toFixed(2)]);
     rows.push([], ['By category', '', '']);
     for (const [k, v] of Object.entries(b.lines).sort((p, q) => q[1] - p[1])) rows.push([CAT[k].line || '—', CAT[k].name, v.toFixed(2)]);
+    const dq = dqNotes(y).map(x => x.replace(/<button[\s\S]*?<\/button>/g, '').replace(/<[^>]+>/g, '').trim());
     rows.push(['28', 'Total expenses', b.expenses.toFixed(2)], ['31', 'Net profit', b.net.toFixed(2)], [], ['Part IV', 'Business miles', b.miles.business.toFixed(1)], ['Part IV', 'Commuting miles', b.miles.commute.toFixed(1)], ['Part IV', 'Other miles', b.miles.other.toFixed(1)]);
+    if (dq.length) { rows.push([], ['Not final yet', '', '']); for (const x of dq) rows.push(['', x, '']); }
     return saveFile(`schedule-c-summary-${y}.csv`, toCSV(rows), 'text/csv');
   }
   if (kind === 'txns') {
@@ -921,13 +1094,16 @@ async function clearSample() {
 
 /* ---------- events ---------- */
 document.addEventListener('click', async (e) => {
-  const el = e.target.closest('[data-tab],[data-tool],[data-act],[data-go],[data-trip],[data-job],[data-rule],[data-place],[data-unrule],[data-gfile],[data-gchange],[data-trkmode],[data-perm],[data-here],[data-geo],[data-tx],[data-cls],[data-snooze],[data-txok],[data-tf],[data-bs],[data-exp]');
+  const el = e.target.closest('[data-tab],[data-tool],[data-act],[data-go],[data-trip],[data-job],[data-rule],[data-place],[data-unrule],[data-gfile],[data-gchange],[data-trkmode],[data-perm],[data-here],[data-geo],[data-tx],[data-cls],[data-snooze],[data-txok],[data-tf],[data-bs],[data-exp],[data-rep],[data-mon],[data-undo]');
   if (!el || el.closest('.swipe.drag')) return;
   const d = el.dataset;
   if (d.tab) return setTab(d.tab);
   if (d.go) return setTab(d.go);
   if (d.tf) { U.tripFilter = d.tf; return render(); }
   if (d.bs) { U.bookSeg = d.bs; return render(); }
+  if (d.rep) { U.rep = d.rep; return render(); }
+  if (d.mon) return monthTip(+d.mon);
+  if (d.undo) return undoImport(d.undo);
   if (d.cls) return setTripClass(d.id, d.cls);
   if (d.trip) return openTrip(d.trip);
   if (d.job) return openJob(d.job);
@@ -944,7 +1120,7 @@ document.addEventListener('click', async (e) => {
   if (d.place) return openPlace(d.place);
   if (d.tx) return openTx(d.tx);
   if (d.snooze) { U.snoozed.add(d.snooze); render(); return toast('Moved to later. It stays in the lists.'); }
-  if (d.txok) { const x = S.txns.find(t => t.id === d.txok); if (x) { x.status = 'ok'; render(); await Store.put('txns', x); const n = await rememberPayee(x.kind, x.payee, x.line, x.id); render(); toast(`Filed. Future uploads file “${x.payee}” as ${LINES[x.line]}.` + (n ? ` ${n} more filed now.` : '')); } return; }
+  if (d.txok) { const x = S.txns.find(t => t.id === d.txok); if (x && isClosed(x.date)) return shutToast(); if (x) { x.status = 'ok'; render(); await Store.put('txns', x); const n = await rememberPayee(x.kind, x.payee, x.line, x.id); render(); toast(`Filed. Future uploads file “${x.payee}” as ${LINES[x.line]}.` + (n ? ` ${n} more filed now.` : '')); } return; }
   if (d.unrule) { const r = { ...(S.settings.payeeRules || {}) }; delete r[d.unrule]; S.settings.payeeRules = r; render(); await Store.putSettings(); return toast('Merchant rule deleted.'); }
   if (d.exp) return exportData(d.exp);
   const t = d.tool || d.act;
@@ -956,6 +1132,7 @@ document.addEventListener('click', async (e) => {
     'drive-start': () => { nativeCall('startDrive'); closeSheet(); toast('Recording this drive.'); setTimeout(() => { nativeRefresh(); phoneRefreshUI(); }, 800); },
     'drive-stop': () => { nativeCall('stopDrive'); closeSheet(); toast('Drive stopped. It will appear in a few minutes.'); setTimeout(() => { nativeRefresh(); phoneRefreshUI(); }, 800); },
     'od-sheet': () => odAction('od-sheet'), 'od-check': () => odAction('od-check'), 'od-all': () => odAction('od-all'), 'od-open': () => odAction('od-open'), 'od-off': () => odAction('od-off'), 'od-connect': () => odAction('od-connect'),
+    'close-year': () => closeYear(true), 'reopen-year': () => closeYear(false),
     'perm-sheet': openPermSheet, 'trk-log': openTrackLog, 'sync-now': async () => { const n = await syncTrips(); if (!n) toast(N.state.running ? 'A drive is being recorded; it appears after you park.' : 'No new trips yet.'); }, 'books-review': () => { U.bookSeg = 'review'; setTab('books'); }, 'clear-sample': clearSample
   })[t]?.();
 });

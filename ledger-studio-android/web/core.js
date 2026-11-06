@@ -197,8 +197,9 @@ function incomeTax(ti, filing) { let tax = 0, lo = 0; for (const [hi, r] of BRAC
 function rateOn(date, rates) { let c = 0; for (const r of [...rates].sort((x, y) => x.from.localeCompare(y.from))) if (r.from <= date) c = r.cents; return c; }
 function tripDeduction(t, s) { return t.cls === 'business' ? t.miles * rateOn(t.date, s.rates) / 100 : 0; }
 
-function books(S, year, upTo) { // upTo: 'YYYY-MM-DD' inclusive, optional
-  const s = S.settings, inR = (d) => d && d.startsWith(String(year)) && (!upTo || d <= upTo);
+function books(S, year, upTo) { return booksRange(S, `${year}-01-01`, upTo || `${year}-12-31`); } // upTo: 'YYYY-MM-DD' inclusive, optional
+function booksRange(S, from, to) {
+  const s = S.settings, inR = (d) => d && d >= from && d <= to;
   const lines = {}; let income = 0;
   for (const x of S.txns) {
     if (!inR(x.date)) continue;
@@ -294,7 +295,7 @@ function lineFrom(v) {
 }
 /* Bank/card CSV → transactions. Extra columns a helper (Atlas) may add are honoured:
    line (Schedule C code or name), job (job number), note, confidence ("high" = file it; "check"/"low" = review). */
-function csvToTxns(text, fileName, memo = {}) {
+function csvToTxns(text, fileName, memo = {}, o = {}) { /* o.companies, o.keys: who pays Edgar and how their deposits read */
   const rows = parseCSV(text); if (rows.length < 1) return { txns: [], error: 'The file has no rows.' };
   const h = rows[0].map(x => x.trim().toLowerCase());
   const find = (...names) => h.findIndex(x => names.some(n => x === n || x.includes(n)));
@@ -317,11 +318,14 @@ function csvToTxns(text, fileName, memo = {}) {
     const given = iL >= 0 ? lineFrom(r[iL]) : null, fits = given && CAT[given].kind === kind;
     const conf = iC >= 0 ? String(r[iC] || '').trim().toLowerCase() : '', sure = fits && !/^(check|low|review|\?)/.test(conf);
     const known0 = memoFind(memo, kind, payee), known = known0 ? catOf(known0, kind) : null;
-    const line = fits ? given : known || (kind === 'income' ? (TRANSFER_RE.test(payee) ? 'transfer' : 'survey-pay') : (guessLine(payee) || 'other'));
+    const co = kind === 'income' && o.companies && !TRANSFER_RE.test(payee) ? companyOfPayee(payee, o.companies, o.keys) : '';
+    const byCo = !fits && !known && !!co; /* a deposit from a company that hires Edgar: survey pay, filed by itself */
+    const line = fits ? given : known || (byCo ? 'survey-pay' : kind === 'income' ? (TRANSFER_RE.test(payee) ? 'transfer' : 'survey-pay') : (guessLine(payee) || 'other'));
     if (fits) classified++;
+    const auto = sure || (!fits && !!known) || byCo;
     const base = `csv|${date}|${amt.toFixed(2)}|${payee.toLowerCase()}`, nth = seen[base] = (seen[base] || 0) + 1; /* two equal charges on one day stay two */
     out.push({ id: uid('tx'), schema: 1, date, kind, amount: Math.abs(+amt.toFixed(2)), payee, line, memo: iN >= 0 ? String(r[iN] || '').trim() : '', jobCode: iJ >= 0 ? String(r[iJ] || '').trim() : '',
-      jobId: null, source: 'csv:' + fileName, externalId: nth > 1 ? base + '|' + nth : base, status: sure || (!fits && known) ? 'ok' : 'review', autoFiled: !!(sure || (!fits && known)), classifiedBy: fits ? 'file' : known ? 'rule' : null });
+      jobId: null, source: 'csv:' + fileName, externalId: nth > 1 ? base + '|' + nth : base, status: auto ? 'ok' : 'review', autoFiled: auto, classifiedBy: fits ? 'file' : known ? 'rule' : byCo ? 'company' : null, company: co || undefined });
   }
   return { txns: out, classified, hasLineColumn: iL >= 0 };
 }
@@ -370,8 +374,9 @@ function jobSite(ex, r, o = {}) {
 function refileOwnJobTrips(S) {
   const own = new Map(S.jobs.filter(j => SURVEY_SOURCES.includes(j.source) && j.billTo === 'own').map(j => [j.id, j]));
   const out = [];
+  const closed = new Set(((S.settings && S.settings.closedYears) || []).map(String));
   for (const t of S.trips) {
-    if (t.cls !== 'employer' || !(t.jobIds || []).some(id => own.has(id))) continue;
+    if (t.cls !== 'employer' || !(t.jobIds || []).some(id => own.has(id)) || closed.has(String(t.date || '').slice(0, 4))) continue;
     if (t.start && t.start.lat != null && t.source !== 'manual') { t.locked = false; classifyTrip(t, S); }
     else {
       t.cls = 'business';
@@ -383,4 +388,96 @@ function refileOwnJobTrips(S) {
   return out;
 }
 
-if (typeof module !== 'undefined') module.exports = { hav, llToSpc, spcToLl, detectTrips, classifyTrip, simulateDay, books, taxOn, quarterly, csvToTxns, uid, ymd, rateOn, placesOf, matchRule, migrateSettings, payeeKey, memoKey, memoFind, companyFor, jobSite, refileOwnJobTrips, lineFrom, sameTxn, CATS, CAT, catOf, LEGACY_CAT, guessLine, SCHED_C };
+/* --- the companies that hire Edgar: pay per job (Integration Spec §3, DRAFT) and how their deposits read on a statement --- */
+const DEFAULT_RATES = { 'M.E. Land Surveying, Inc.': 50, 'OnlineLand Surveyors, Inc.': 55, 'LandMark': 50, 'Target': 50 };
+const squash = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+const GENERIC_WORDS = /\b(inc|llc|co|corp|corporation|company|the|surveying|surveyors|survey|services|group|and)\b/g;
+/* "M.E. Land Surveying, Inc." → "meland"; plus any bank texts typed in Setup ("ME LAND, MELS") */
+function companyKeys(name, extra) {
+  const core = String(name || '').toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').replace(GENERIC_WORDS, ' ').trim().split(/\s+/).join('');
+  return [core, ...String(extra || '').split(',').map(squash)].filter(k => k.length >= 4);
+}
+function companyOfPayee(payee, companies, keys = {}) {
+  const p = squash(payee);
+  for (const c of companies) if (companyKeys(c, keys[c]).some(k => p.includes(k))) return c;
+  return '';
+}
+function companiesOf(S) {
+  const set = new Set(Object.keys(DEFAULT_RATES));
+  for (const j of S.jobs) if (SURVEY_SOURCES.includes(j.source) && j.client) set.add(j.client);
+  for (const k of Object.keys((S.settings && S.settings.companyRates) || {})) set.add(k);
+  return [...set];
+}
+function rateOf(S, company) { const cr = (S.settings && S.settings.companyRates) || {}; if (Object.prototype.hasOwnProperty.call(cr, company)) return cr[company] === '' || cr[company] == null ? null : +cr[company]; return DEFAULT_RATES[company] ?? null; }
+const isSurveyPay = (x) => x.kind === 'income' && catOf(x.line, 'income') === 'survey-pay';
+/* who paid a deposit: what the import found, the job it's linked to, or the deposit text */
+function depositCompany(S, x, jobsById) {
+  if (x.company) return x.company;
+  const j = x.jobId && jobsById.get(x.jobId); if (j && j.client) return j.client;
+  return companyOfPayee(x.payee, companiesOf(S), (S.settings && S.settings.companyKeys) || {});
+}
+/* Per company, for a period: jobs you drove to (from your own GPS trips) × pay per job = earned; survey-pay deposits = paid.
+   An estimate: a payment can land in the next period, and a job you reached without a trip isn't counted. */
+function companyMoney(S, from, to) {
+  const inR = (d) => d && d >= from && d <= to, byId = new Map(S.jobs.map(j => [j.id, j])), out = new Map();
+  const get = (c) => out.get(c) || out.set(c, { company: c, rate: rateOf(S, c), jobs: new Set(), paid: 0, deposits: 0 }).get(c);
+  for (const t of S.trips) if (inR(t.date) && (t.cls === 'business' || t.cls === 'employer'))
+    for (const id of t.jobIds || []) { const j = byId.get(id); if (j && j.client && SURVEY_SOURCES.includes(j.source)) get(j.client).jobs.add(id); }
+  let unassigned = 0;
+  for (const x of S.txns) if (inR(x.date) && isSurveyPay(x)) { const c = depositCompany(S, x, byId); if (c) { const e = get(c); e.paid += x.amount; e.deposits++; } else unassigned += x.amount; }
+  const rows = [...out.values()].map(e => ({ company: e.company, rate: e.rate, jobs: e.jobs.size, earned: e.rate != null ? e.jobs.size * e.rate : null, paid: e.paid, deposits: e.deposits,
+    diff: e.rate != null ? e.jobs.size * e.rate - e.paid : null })).sort((a, b) => (b.earned || b.paid) - (a.earned || a.paid));
+  return { rows, unassigned };
+}
+/* Profit per job for a period: pay per job − the drive (miles × IRS rate, shared when a trip links two jobs) − expenses linked to the job */
+function jobProfit(S, from, to) {
+  const inR = (d) => d && d >= from && d <= to, byId = new Map(S.jobs.map(j => [j.id, j])), m = new Map();
+  const get = (id) => m.get(id) || m.set(id, { id, miles: 0, car: 0, spent: 0, first: null }).get(id);
+  for (const t of S.trips) {
+    if (!inR(t.date) || !(t.cls === 'business' || t.cls === 'employer') || !(t.jobIds || []).length) continue;
+    const share = 1 / t.jobIds.length;
+    for (const id of t.jobIds) { if (!byId.has(id)) continue; const e = get(id); e.miles += t.miles * share; e.car += t.miles * share * rateOn(t.date, S.settings.rates) / 100; if (!e.first || t.date < e.first) e.first = t.date; }
+  }
+  for (const x of S.txns) if (inR(x.date) && x.kind === 'expense' && x.jobId && byId.has(x.jobId)) { const k = catOf(x.line, 'expense'); if (CAT[k].line) { const e = get(x.jobId); e.spent += k === 'meals' ? x.amount * 0.5 : x.amount; if (!e.first || x.date < e.first) e.first = x.date; } }
+  return [...m.values()].map(e => { const j = byId.get(e.id), pay = SURVEY_SOURCES.includes(j.source) ? rateOf(S, j.client) : null;
+    return { ...e, code: j.code, company: j.client || '', pay, profit: pay != null ? pay - e.car - e.spent : null }; })
+    .sort((a, b) => (b.first || '').localeCompare(a.first || ''));
+}
+/* the biggest deductible spending, by merchant */
+function merchantTop(S, from, to, n = 10) {
+  const g = new Map();
+  for (const x of S.txns) {
+    if (!(x.date >= from && x.date <= to) || x.kind !== 'expense') continue;
+    const k = catOf(x.line, 'expense'); if (!CAT[k].line) continue;
+    const key = payeeKey(x.payee) || x.payee.toLowerCase(), e = g.get(key) || g.set(key, { name: x.payee, total: 0, count: 0, cats: {} }).get(key);
+    e.total += x.amount; e.count++; e.cats[k] = (e.cats[k] || 0) + 1;
+  }
+  return [...g.values()].map(e => ({ ...e, cat: Object.entries(e.cats).sort((p, q) => q[1] - p[1])[0][0] })).sort((a, b) => b.total - a.total).slice(0, n);
+}
+/* periods for reports: { from, to, label, prev: { from, to, label } } — "to date" periods compare with the same days before */
+function addMonths(d, n) { const [y, m, day] = d.split('-').map(Number), t = new Date(Date.UTC(y, m - 1 + n, 1)), last = new Date(Date.UTC(t.getUTCFullYear(), t.getUTCMonth() + 1, 0)).getUTCDate();
+  return `${t.getUTCFullYear()}-${String(t.getUTCMonth() + 1).padStart(2, '0')}-${String(Math.min(day, last)).padStart(2, '0')}`; }
+function monthEnd(d) { const [y, m] = d.split('-').map(Number); return `${y}-${String(m).padStart(2, '0')}-${String(new Date(Date.UTC(y, m, 0)).getUTCDate()).padStart(2, '0')}`; }
+function periodRange(kind, today, year) {
+  const y = +today.slice(0, 4), ym = today.slice(0, 7), q0 = Math.floor((+today.slice(5, 7) - 1) / 3) * 3 + 1, qs = `${y}-${String(q0).padStart(2, '0')}-01`;
+  const r = (from, to, label, pf, pt, pl) => ({ from, to, label, prev: { from: pf, to: pt, label: pl } });
+  if (kind === 'month') return r(`${ym}-01`, today, 'This month', addMonths(`${ym}-01`, -1), addMonths(today, -1), 'Same days last month');
+  if (kind === 'last-month') { const f = addMonths(`${ym}-01`, -1); return r(f, monthEnd(f), 'Last month', addMonths(f, -1), monthEnd(addMonths(f, -1)), 'The month before'); }
+  if (kind === 'quarter') return r(qs, today, 'This quarter', addMonths(qs, -3), addMonths(today, -3), 'Same days last quarter');
+  if (kind === 'last-year') return r(`${y - 1}-01-01`, `${y - 1}-12-31`, String(y - 1), `${y - 2}-01-01`, `${y - 2}-12-31`, String(y - 2));
+  if (kind === 'year' && year && year !== y) return r(`${year}-01-01`, `${year}-12-31`, String(year), `${year - 1}-01-01`, `${year - 1}-12-31`, String(year - 1));
+  return r(`${y}-01-01`, today, 'Year to date', `${y - 1}-01-01`, `${y - 1}${today.slice(4)}`, 'Same days last year');
+}
+/* What isn't finished yet, so a total doesn't look final when it isn't */
+function dataQuality(S, year, today) {
+  const yr = (d) => d && d.startsWith(String(year));
+  const txReview = S.txns.filter(x => yr(x.date) && x.status === 'review').length, tripReview = S.trips.filter(t => yr(t.date) && t.cls === 'review').length;
+  const jobsNoLoc = S.jobs.filter(j => j.lat == null && j.status !== 'done' && j.jobStatus !== 'cancelled').length;
+  const stmt = S.txns.filter(x => yr(x.date) && String(x.source || '').startsWith('csv:'));
+  const months = new Set(stmt.map(x => x.date.slice(0, 7)));
+  const lastFull = year < +today.slice(0, 4) ? 12 : +today.slice(5, 7) - 1, first = stmt.length ? Math.min(...stmt.map(x => +x.date.slice(5, 7))) : null, missing = [];
+  if (first) for (let m = first; m <= lastFull; m++) { const k = `${year}-${String(m).padStart(2, '0')}`; if (!months.has(k)) missing.push(k); }
+  return { txReview, tripReview, jobsNoLoc, missingMonths: missing, noStatements: !stmt.length, lastStatement: stmt.length ? stmt.map(x => x.date).sort().pop() : null };
+}
+
+if (typeof module !== 'undefined') module.exports = { hav, llToSpc, spcToLl, detectTrips, classifyTrip, simulateDay, books, taxOn, quarterly, csvToTxns, uid, ymd, rateOn, placesOf, matchRule, migrateSettings, payeeKey, memoKey, memoFind, companyFor, jobSite, refileOwnJobTrips, lineFrom, sameTxn, CATS, CAT, catOf, LEGACY_CAT, guessLine, SCHED_C, booksRange, companyOfPayee, companyKeys, companiesOf, companyMoney, jobProfit, merchantTop, periodRange, dataQuality, addMonths, rateOf };

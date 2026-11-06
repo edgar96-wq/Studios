@@ -63,6 +63,14 @@ pays your mileage; its jobs then count as employer jobs. Fallback: **Import ledg
   review are updated, not duplicated.
 - **To review** is grouped by merchant: **File all** files them and remembers the merchant for the next statements.
 
+## Reports and closing a year
+- **Reports** tab: profit & loss for this month, last month, this quarter, year to date or last year, each against the period before;
+  income vs deductions by month; survey companies (jobs driven to × pay per job = earned, against their deposits = paid); profit per job
+  (pay − miles × IRS rate − linked expenses); top merchants; P&L export (.csv). "Not final yet" lists what is still open (reviews, missing statement months, jobs without a location).
+- Company deposits are recognised on import (company name, or the bank text in Setup → Companies) and filed as survey pay. Pay per job is set there too.
+- Every statement import is logged (last 20) and can be undone in Files.
+- Taxes → **Close YEAR (after you file)** locks that year: imports skip its rows, trips are not re-filed, and edits are refused until it is reopened.
+
 ## Data
 Everything is saved on the phone. Make a backup each month (Files → Backup) and keep it in OneDrive;
 the same backup restores into the claude.ai preview and the other way round.
